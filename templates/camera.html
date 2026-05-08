@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Dashboard | SOC Portal</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+        }
+        .navbar {
+            background-color: #1e1e1e;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #333;
+        }
+        .logout-btn {
+            background-color: #dc3545;
+            color: white;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .dashboard-container {
+            display: flex;
+            padding: 20px;
+            gap: 20px;
+        }
+        .camera-feed {
+            flex: 3;
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .alert-panel {
+            flex: 1;
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #0078D7;
+        }
+        /* Camera Image styling */
+        #cam {
+            width: 100%;
+            max-width: 800px;
+            border: 2px solid #333;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h2>Live Security Dashboard</h2>
+        <a href="{{ url_for('logout') }}" class="logout-btn">Log Out</a>
+    </div>
+
+    <div class="dashboard-container">
+        <div class="camera-feed">
+            <h3>Primary Camera (192.168.1.10)</h3>
+            <img id="cam" src="" alt="Live Feed Loading...">
+        </div>
+        
+        <div class="alert-panel">
+            <h3>System Status</h3>
+            <p style="color: #4caf50;">Network: Secured</p>
+            <hr style="border-color: #333;">
+            <h4>Recent Alerts</h4>
+            <p style="font-size: 0.9em; color: #aaa;">Listening for intrusion attempts...</p>
+        </div>
+    </div>
+
+    <script>
+        function refresh() {
+            // Appends a timestamp to bypass browser caching, pulling a fresh frame from the IP Camera
+            document.getElementById('cam').src = 'http://192.168.1.10/snapshot.jpg?t=' + Date.now();
+        }
+        setInterval(refresh, 1000); // Refreshes every 1 second
+        refresh();
+    </script>
+</body>
+</html>
