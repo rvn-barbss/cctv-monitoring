@@ -29,18 +29,9 @@
     .camera-layout { display: grid; grid-template-columns: 3fr 1fr; gap: 25px; }
     .video-box {
       background: #000; height: 480px; display: flex; flex-direction: column;
-      justify-content: center; align-items: center; border: 1px solid #333;
+      justify-content: center; align-items: center; border: 1px solid #333; overflow: hidden;
     }
-    .pulse {
-      width: 12px; height: 12px; background: #ffc107;
-      border-radius: 50%; margin-bottom: 15px; animation: pulse-animation 2s infinite;
-    }
-    @keyframes pulse-animation {
-      0%   { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255,193,7,0.7); }
-      70%  { transform: scale(1);    box-shadow: 0 0 0 10px rgba(255,193,7,0); }
-      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255,193,7,0); }
-    }
-
+    
     .sidebar { background: #222; padding: 20px; border-radius: 6px; border: 1px solid #333; }
 
     .log-filters {
@@ -93,28 +84,25 @@
       <button class="tab-link" onclick="openTab(event,'Logs')">LOGS</button>
     </div>
 
-    <!-- CAMERA TAB -->
     <div id="Camera" class="tab-content" style="display:block;">
       <div class="camera-layout">
         <div>
-          <h3 style="margin-top:0;">Node: Hardware Search Active</h3>
-          <div class="video-box">
-            <div class="pulse"></div>
-            <p style="letter-spacing:2px;font-size:13px;color:#666;">SEARCHING FOR 192.168.1.10</p>
+          <h3 style="margin-top:0;">Node: Live Stream Active</h3>
+          <div class="video-box" style="padding: 0;">
+            <img src="http://78.4.26.105:8080/video" alt="Live Camera Feed" style="width: 100%; height: 100%; object-fit: cover;">
           </div>
         </div>
         <div class="sidebar">
           <h4>Network Intel</h4>
-          <p>Status: <span style="color:#00ff41">READY</span></p>
+          <p>Status: <span style="color:#00ff41">LIVE FEED</span></p>
           <p>User: <span style="color:#3a86ff">admin</span></p>
           <hr style="border:0;border-top:1px solid #444;margin:15px 0;">
           <p style="font-size:12px;color:#aaa;">Database: PostgreSQL (Cloud)</p>
-          <p style="font-size:12px;color:#aaa;">Scanning RJ45 Port 1...</p>
+          <p style="font-size:12px;color:#aaa;">Streaming from external node...</p>
         </div>
       </div>
     </div>
 
-    <!-- LOGS TAB -->
     <div id="Logs" class="tab-content">
       <h3 style="margin-top:0;">User Activity & Access History</h3>
 
@@ -155,7 +143,7 @@
     let allLogs = [];
     let activeDays = 7;
     let activeType = 'all';
-    let sortAsc = false; // false = newest first (desc), true = oldest first (asc)
+    let sortAsc = false; 
 
     function openTab(evt, tabName) {
       document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
