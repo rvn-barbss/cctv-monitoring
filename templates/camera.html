@@ -4,220 +4,269 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Secure Web-Based Surveillance Access System</title>
-  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --bg-root: #04111c;
-      --bg-card: #0a1a26;
-      --bg-input: #0f2030;
-      --border-dim: #1a3a50;
-      --border-glow: #00e5ff;
-      --accent-cyan: #00e5ff;
-      --accent-blue: #1a8fff;
-      --accent-red: #cc1133;
-      --accent-amber: #ffb300;
-      --accent-green: #00e676;
-      --text-primary: #cce8f0;
-      --text-muted: #3d6878;
-      --text-dim: #1e3d50;
+    body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #0d0d0d; color: #e0e0e0; }
+
+    .navbar {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #161616; padding: 12px 25px; border-bottom: 2px solid #222;
     }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Share Tech Mono', monospace;
-      background: var(--bg-root);
-      color: var(--text-primary);
-      min-height: 100vh;
-      overflow-x: hidden;
-      position: relative;
+    .logout-btn {
+      background: #d90429; color: white; text-decoration: none;
+      padding: 8px 18px; border-radius: 4px; font-weight: bold;
     }
-    /* ... (All your original styles remain unchanged) ... */
-    /* I kept all your CSS exactly as you had it */
+
+    .tab-container { width: 95%; max-width: 1300px; margin: 25px auto; }
+    .tabs { display: flex; gap: 15px; border-bottom: 2px solid #222; margin-bottom: 25px; }
+    .tab-link {
+      background: none; color: #555; border: none;
+      padding: 15px 25px; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.2s;
+    }
+    .tab-link.active { color: #3a86ff; border-bottom: 3px solid #3a86ff; }
+
+    .tab-content { display: none; background: #161616; padding: 25px; border-radius: 8px; border: 1px solid #222; }
+
+    .camera-layout { display: grid; grid-template-columns: 3fr 1fr; gap: 25px; }
+    
+    /* Updated video-box to fit the live feed properly */
+    .video-box {
+      background: #000; height: 480px; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; border: 1px solid #3a86ff; 
+      overflow: hidden; border-radius: 4px; box-shadow: 0 0 10px rgba(58, 134, 255, 0.2);
+    }
+    #feed {
+      width: 100%;
+      height: 100%;
+      object-fit: cover; /* Ensures the feed fills the box without distortion */
+    }
+
+    .sidebar { background: #222; padding: 20px; border-radius: 6px; border: 1px solid #333; }
+
+    .log-filters {
+      display: flex; gap: 10px; align-items: center; margin-bottom: 15px; flex-wrap: wrap;
+    }
+    .filter-btn {
+      background: #222; color: #aaa; border: 1px solid #333;
+      padding: 7px 16px; border-radius: 4px; font-size: 13px; cursor: pointer; transition: 0.2s;
+    }
+    .filter-btn.active { background: #3a86ff; color: #fff; border-color: #3a86ff; }
+    .filter-btn:hover { border-color: #3a86ff; color: #3a86ff; }
+    .filter-label { font-size: 13px; color: #666; margin-right: 4px; }
+
+    .sort-btn {
+      background: #222; color: #aaa; border: 1px solid #333;
+      padding: 7px 16px; border-radius: 4px; font-size: 13px; cursor: pointer;
+      transition: 0.2s; display: flex; align-items: center; gap: 6px;
+    }
+    .sort-btn:hover { border-color: #3a86ff; color: #3a86ff; }
+
+    .log-table-container { overflow-x: auto; }
+    .log-table {
+      width: 100%; border-collapse: collapse;
+      background: #050505; color: #e0e0e0; font-family: 'Courier New', monospace;
+    }
+    .log-table th {
+      background: #111; color: #3a86ff;
+      padding: 14px; text-align: left; border-bottom: 2px solid #222;
+    }
+    .log-table td { padding: 12px; border-bottom: 1px solid #222; font-size: 14px; }
+    .log-table tr:hover { background: #161616; }
+
+    .success { color: #00ff41; font-weight: bold; }
+    .failed  { color: #ff4d4d; font-weight: bold; }
+    .access  { color: #ffc107; font-weight: bold; }
+
+    .log-count { font-size: 12px; color: #555; margin-left: auto; }
+    
+    .camera-controls {
+      display: flex; gap: 10px; margin-top: 15px;
+    }
   </style>
 </head>
 <body>
-  <!-- Navbar and everything else stays the same -->
+
   <nav class="navbar">
-    <div class="nav-brand">
-      <div class="nav-title">CCTV ni Gilbert</div>
-      <div class="nav-subtitle">Advanced CCTV Monitoring Interface</div>
-    </div>
-    <div class="nav-right">
-      <div class="sys-badge">
-        <span class="sys-dot"></span>
-        SYSTEM ONLINE
-      </div>
-      <a href="/logout" class="logout-btn">LOGOUT</a>
-    </div>
+    <h2 style="color:#3a86ff;margin:0;letter-spacing:1px;">Secure Web-Based Surveillance Access System</h2>
+    <a href="/logout" class="logout-btn">LOGOUT</a>
   </nav>
 
-  <div class="main">
-    <div class="tab-bar">
+  <div class="tab-container">
+    <div class="tabs">
       <button class="tab-link active" onclick="openTab(event,'Camera')">CAMERA FEED</button>
       <button class="tab-link" onclick="openTab(event,'Logs')">LOGS</button>
     </div>
 
     <!-- CAMERA TAB -->
-    <div id="Camera" class="tab-content card" style="display:block;">
+    <div id="Camera" class="tab-content" style="display:block;">
       <div class="camera-layout">
         <div>
-          <div class="section-label" id="feed-label">NODE · CONNECTING TO STREAM</div>
+          <h3 style="margin-top:0; color:#00ff41;">🚨 LIVE CCTV MONITORING ONLINE</h3>
+          
+          <!-- Integrated Camera Feed -->
           <div class="video-box">
-            <div class="cam-corner tl"></div>
-            <div class="cam-corner tr"></div>
-            <div class="cam-corner bl"></div>
-            <div class="cam-corner br"></div>
-            
-            <div class="cam-badge live-badge" id="live-badge" style="display:none;">
-              <div class="pulse green"></div>LIVE
-            </div>
-            <div class="cam-badge searching-badge" id="searching-badge">
-              <div class="pulse amber"></div>CONNECTING
-            </div>
-
-            <img id="cam-feed" style="display:none;" alt="Camera Feed" />
-            
-            <div class="cam-overlay" id="connecting-overlay">
-              <div class="search-ring"></div>
-              <div class="cam-ip" id="cam-ip-label">CONNECTING TO NGROK STREAM</div>
-            </div>
-
-            <div class="cam-overlay" id="error-overlay" style="display:none;">
-              <div class="cam-error-msg">⚠ STREAM UNAVAILABLE</div>
-              <div class="cam-error-sub" id="error-detail">Cannot reach ngrok tunnel</div>
-              <button class="retry-btn" onclick="retryFeed()">↺ RETRY CONNECTION</button>
-            </div>
+            <img id="feed" src="https://immersion-frolic-grazing.ngrok-free.dev/video" alt="Live Camera">
+          </div>
+          
+          <!-- Integrated Camera Controls using existing dashboard button styles -->
+          <div class="camera-controls">
+            <button class="filter-btn active" onclick="refreshFeed()">🔄 Refresh Feed</button>
+            <button class="filter-btn active" onclick="toggleFullscreen()">⛶ Full Screen</button>
           </div>
         </div>
 
-        <!-- NETWORK INTEL (Updated) -->
-        <div>
-          <div class="section-label">NETWORK INTEL</div>
-          <div class="intel-box">
-            <div class="intel-title">// SYSTEM STATUS</div>
-            <div class="intel-row">
-              <div class="intel-lbl">Connection</div>
-              <div class="intel-val live" id="conn-status">● CONNECTING...</div>
-            </div>
-            <div class="intel-row">
-              <div class="intel-lbl">Operator</div>
-              <div class="intel-val user">admin</div>
-            </div>
-            <div class="intel-row">
-              <div class="intel-lbl">Database</div>
-              <div class="intel-val small">PostgreSQL (Cloud)</div>
-            </div>
-            <div class="intel-row">
-              <div class="intel-lbl">Camera Source</div>
-              <div class="intel-val small">IP Webcam (via ngrok)</div>
-            </div>
-            <div class="intel-row">
-              <div class="intel-lbl">Stream Path</div>
-              <div class="intel-val warn" id="stream-path-display">/video</div>
-            </div>
-          </div>
+        <div class="sidebar">
+          <h4>Network Intel</h4>
+          <p>Status: <span style="color:#00ff41">● ONLINE</span></p>
+          <p>User: <span style="color:#3a86ff">admin</span></p>
+          <p>Target: <span style="color:#e0e0e0">ngrok-free.dev</span></p>
+          <hr style="border:0;border-top:1px solid #444;margin:15px 0;">
+          <p style="font-size:12px;color:#aaa;">Database: PostgreSQL (Cloud)</p>
+          <p style="font-size:12px;color:#aaa;">Streaming via HTTP Video Feed</p>
         </div>
       </div>
     </div>
 
-    <!-- LOGS TAB remains unchanged -->
-    <div id="Logs" class="tab-content card">
-      <!-- Your original logs code here (unchanged) -->
-      ... (I kept it exactly as you had it) ...
+    <!-- LOGS TAB -->
+    <div id="Logs" class="tab-content">
+      <h3 style="margin-top:0;">User Activity & Access History</h3>
+
+      <div class="log-filters">
+        <span class="filter-label">PERIOD:</span>
+        <button class="filter-btn active" onclick="setFilter(this, 7)">Last 7 Days</button>
+        <button class="filter-btn" onclick="setFilter(this, 30)">Last 30 Days</button>
+        <button class="filter-btn" onclick="setFilter(this, 0)">All Time</button>
+        <span class="filter-label" style="margin-left:20px;">TYPE:</span>
+        <button class="filter-btn active" onclick="setType(this, 'all')">All</button>
+        <button class="filter-btn" onclick="setType(this, 'success')">Login Success</button>
+        <button class="filter-btn" onclick="setType(this, 'failed')">Failed Login</button>
+        <button class="filter-btn" onclick="setType(this, 'access')">Accessed</button>
+        <span class="filter-label" style="margin-left:20px;">SORT:</span>
+        <button class="sort-btn" id="sort-btn" onclick="toggleSort()">
+          <span id="sort-label">Newest First</span>
+          <span id="sort-arrow">↓</span>
+        </button>
+        <span class="log-count" id="log-count"></span>
+      </div>
+
+      <div class="log-table-container">
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th>Date</th><th>Time</th><th>User</th><th>Action</th><th>IP Address</th>
+            </tr>
+          </thead>
+          <tbody id="log-body">
+            <tr><td colspan="5">Loading logs...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
   <script>
-    // ================== UPDATED CAMERA CONFIG ==================
-    const CAM_BASE = 'https://immersion-frolic-grazing.ngrok-free.dev';
-    
-    const STREAM_PATHS = [
-      '/video',           // Best for IP Webcam
-      '/shot.jpg',        // Fallback static image
-      '/mjpeg/1'
-    ];
+    // --- DASHBOARD UI LOGIC ---
+    let allLogs = [];
+    let activeDays = 7;
+    let activeType = 'all';
+    let sortAsc = false; // false = newest first (desc), true = oldest first (asc)
 
-    // Rest of your original JavaScript (slightly cleaned)
-    function showConnecting() {
-      document.getElementById('connecting-overlay').style.display = 'flex';
-      document.getElementById('error-overlay').style.display = 'none';
-      document.getElementById('cam-feed').style.display = 'none';
-      document.getElementById('live-badge').style.display = 'none';
-      document.getElementById('searching-badge').style.display = 'flex';
-      document.getElementById('conn-status').textContent = '● CONNECTING...';
-      document.getElementById('conn-status').style.color = 'var(--accent-amber)';
-      document.getElementById('feed-label').textContent = 'NODE · CONNECTING TO STREAM';
+    function openTab(evt, tabName) {
+      document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+      document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
+      document.getElementById(tabName).style.display = 'block';
+      evt.currentTarget.classList.add('active');
+      if (tabName === 'Logs') updateLogs();
     }
 
-    function showLive(path) {
-      document.getElementById('connecting-overlay').style.display = 'none';
-      document.getElementById('error-overlay').style.display = 'none';
-      document.getElementById('cam-feed').style.display = 'block';
-      document.getElementById('live-badge').style.display = 'flex';
-      document.getElementById('searching-badge').style.display = 'none';
-      document.getElementById('conn-status').textContent = '● LIVE';
-      document.getElementById('conn-status').style.color = 'var(--accent-green)';
-      document.getElementById('feed-label').textContent = 'NODE · LIVE CAMERA FEED';
-      document.getElementById('stream-path-display').textContent = path;
-      document.getElementById('stream-path-display').style.color = 'var(--accent-green)';
+    function setFilter(btn, days) {
+      activeDays = days;
+      btn.closest('.log-filters').querySelectorAll('.filter-btn').forEach(b => {
+        if (['7','30','0'].includes(b.getAttribute('onclick')?.match(/\d+/)?.[0])) b.classList.remove('active');
+      });
+      btn.classList.add('active');
+      renderLogs();
     }
 
-    function showError() {
-      document.getElementById('connecting-overlay').style.display = 'none';
-      document.getElementById('error-overlay').style.display = 'flex';
-      document.getElementById('cam-feed').style.display = 'none';
-      document.getElementById('live-badge').style.display = 'none';
-      document.getElementById('searching-badge').style.display = 'none';
-      document.getElementById('conn-status').textContent = '● OFFLINE';
-      document.getElementById('conn-status').style.color = '#ff4466';
-      document.getElementById('feed-label').textContent = 'NODE · STREAM UNAVAILABLE';
+    function setType(btn, type) {
+      activeType = type;
+      btn.closest('.log-filters').querySelectorAll('.filter-btn').forEach(b => {
+        if (b.getAttribute('onclick')?.includes('setType')) b.classList.remove('active');
+      });
+      btn.classList.add('active');
+      renderLogs();
     }
 
-    function tryPath(index) {
-      if (index >= STREAM_PATHS.length) { 
-        showError(); 
-        return; 
+    function toggleSort() {
+      sortAsc = !sortAsc;
+      document.getElementById('sort-label').textContent = sortAsc ? 'Oldest First' : 'Newest First';
+      document.getElementById('sort-arrow').textContent = sortAsc ? '↑' : '↓';
+      renderLogs();
+    }
+
+    function parseLine(line) {
+      const m = line.match(/\[(.*?)\]\s(.*?)\s-\s(.*?)\s\((.*?)\)/);
+      if (!m) return null;
+      const [date, time] = m[1].split(' ');
+      return { date, time, user: m[2], action: m[3], ip: m[4], timestamp: new Date(`${date} ${time}`) };
+    }
+
+    function renderLogs() {
+      const now = new Date();
+      let filtered = allLogs.filter(log => {
+        if (activeDays > 0 && (now - log.timestamp) / (1000 * 60 * 60 * 24) > activeDays) return false;
+        if (activeType === 'success' && !log.action.includes('LOGIN SUCCESS')) return false;
+        if (activeType === 'failed'  && !log.action.includes('FAILED LOGIN'))  return false;
+        if (activeType === 'access'  && !log.action.includes('ACCESSED'))      return false;
+        return true;
+      });
+
+      filtered.sort((a, b) => sortAsc ? a.timestamp - b.timestamp : b.timestamp - a.timestamp);
+
+      document.getElementById('log-count').textContent = `${filtered.length} record${filtered.length !== 1 ? 's' : ''}`;
+
+      let html = '';
+      filtered.forEach(log => {
+        const actionClass = log.action.includes('LOGIN SUCCESS') ? 'success'
+                          : log.action.includes('FAILED LOGIN')  ? 'failed'
+                          : log.action.includes('ACCESSED')      ? 'access' : '';
+        html += `<tr>
+          <td>${log.date}</td><td>${log.time}</td><td>${log.user}</td>
+          <td class="${actionClass}">${log.action}</td><td>${log.ip}</td>
+        </tr>`;
+      });
+
+      document.getElementById('log-body').innerHTML = html || '<tr><td colspan="5">No logs found.</td></tr>';
+    }
+
+    function updateLogs() {
+      fetch('/get_logs')
+        .then(res => res.text())
+        .then(data => {
+          allLogs = data.trim().split('\n').map(parseLine).filter(Boolean);
+          renderLogs();
+        });
+    }
+
+    setInterval(() => {
+      if (document.getElementById('Logs').style.display === 'block') updateLogs();
+    }, 3000);
+
+    // --- INTEGRATED CCTV FEED LOGIC ---
+    const feed = document.getElementById('feed');
+    const baseUrl = "https://immersion-frolic-grazing.ngrok-free.dev";
+
+    function refreshFeed() {
+      if(feed) feed.src = baseUrl + "/video?" + new Date().getTime();
+    }
+
+    function toggleFullscreen() {
+      if (feed && feed.requestFullscreen) {
+        feed.requestFullscreen();
       }
-
-      const path = STREAM_PATHS[index];
-      const img = document.getElementById('cam-feed');
-      
-      document.getElementById('cam-ip-label').textContent = `TRYING ${path}`;
-      document.getElementById('stream-path-display').textContent = `Trying ${path}...`;
-
-      let timeout = setTimeout(() => { 
-        img.src = ''; 
-        tryPath(index + 1); 
-      }, 5000);
-
-      img.onload = () => { 
-        clearTimeout(timeout); 
-        showLive(path); 
-      };
-      img.onerror = () => { 
-        clearTimeout(timeout); 
-        tryPath(index + 1); 
-      };
-
-      img.src = CAM_BASE + path;
     }
 
-    function retryFeed() {
-      showConnecting();
-      setTimeout(() => tryPath(0), 500);
-    }
-
-    // Auto start on load
-    window.addEventListener('load', () => { 
-      showConnecting(); 
-      tryPath(0); 
-    });
-
-    // Keep your original Logs script here (unchanged)
-    /* ─── TABS & LOGS ─────────────────────────────── */
-    let allLogs = [], activeDays = 7, activeType = 'all', sortAsc = false;
-    
-    // ... (paste all your original log functions here: openTab, setFilter, etc.)
-    // I didn't remove them to save space, just copy them from your original file.
+    // Auto refresh every 15 seconds
+    setInterval(refreshFeed, 15000);
   </script>
 </body>
 </html>
