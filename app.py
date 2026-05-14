@@ -1,5 +1,6 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash
+import requests
+from flask import Flask, render_template, request, redirect, url_for, flash, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -13,7 +14,6 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'super_secret_exam_key')
 
 # --- 1. PostgreSQL Database Connection ---
-# This links your code to the Railway PostgreSQL database
 db_url = os.environ.get('DATABASE_URL')
 if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
@@ -41,7 +41,6 @@ class AuditLog(db.Model):
 with app.app_context():
     try:
         db.create_all()
-        # Hidden credentials (stored in Railway Variables, not code)
         admin_user = os.environ.get('ADMIN_USER', 'admin')
         admin_pass = os.environ.get('ADMIN_PASS', 'password123')
         
@@ -85,7 +84,7 @@ def login():
         password = request.form.get('password')
         user = User.query.filter_by(username=username).first()
 
-        # Intrusion detection: Check if account is locked
+        # Intrusion detection
         if user and user.is_locked:
             record_activity(f"INTRUSION ALERT: Locked account access attempt", username)
             flash('Account locked due to multiple failed attempts')
@@ -98,7 +97,6 @@ def login():
             record_activity("LOGIN SUCCESS", username)
             return redirect(url_for('dashboard'))
         else:
-            # THIS IS YOUR HONEYPOT: Logs every failed attempt to the database
             record_activity(f"FAILED LOGIN ATTEMPT: Incorrect credentials", username if user else "Unknown User")
             if user:
                 user.failed_attempts += 1
@@ -112,11 +110,9 @@ def login():
 @app.route('/get_logs')
 @login_required
 def get_logs():
-    """Fetches the last 50 security events from PostgreSQL for the website tab"""
     logs = AuditLog.query.order_by(AuditLog.id.desc()).limit(50).all()
     output = ""
     for log in logs:
-        # Convert to local time (UTC+8 for Philippines)
         ph_time = log.timestamp + timedelta(hours=8)
         time_str = ph_time.strftime("%Y-%m-%d %H:%M:%S")
         output += f"[{time_str} UTC+8] {log.username} - {log.action} ({log.ip_address})\n"
@@ -127,6 +123,29 @@ def get_logs():
 def dashboard():
     record_activity("ACCESSED LIVE CAMERA FEED", current_user.username)
     return render_template('camera.html')
+
+@app.route('/video_feed')
+@login_required
+def video_feed():
+    """This route acts as a secure middleman proxy for the live camera stream"""
+    camera_url = 'http://78.4.26.105:8080/video'
+    
+    try:
+        # stream=True prevents Flask from trying to download the endless video
+        r = requests.get(camera_url, stream=True, timeout=10)
+        
+        # A generator function to yield the video chunks as they arrive in real-time
+        def generate():
+            for chunk in r.iter_content(chunk_size=8192):
+                if chunk:
+                    yield chunk
+                    
+        # Pass the chunks and the exact MIME type to the browser
+        return Response(generate(), mimetype=r.headers.get('Content-Type'))
+        
+    except requests.exceptions.RequestException as e:
+        print(f"Camera Proxy Error: {e}")
+        return "Camera offline or unreachable", 503
 
 @app.route('/logout')
 @login_required
