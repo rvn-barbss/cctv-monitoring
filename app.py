@@ -1,5 +1,6 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash
+import requests
+from flask import Flask, render_template, request, redirect, url_for, flash, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -13,6 +14,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'super_secret_exam_key')
 
 # --- 1. PostgreSQL Database Connection ---
+# This links your code to the Railway PostgreSQL database
 db_url = os.environ.get('DATABASE_URL')
 if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
@@ -40,6 +42,7 @@ class AuditLog(db.Model):
 with app.app_context():
     try:
         db.create_all()
+        # Hidden credentials (stored in Railway Variables, not code)
         admin_user = os.environ.get('ADMIN_USER', 'admin')
         admin_pass = os.environ.get('ADMIN_PASS', 'password123')
         
@@ -63,14 +66,13 @@ def record_activity(action, username="System"):
     """Saves security logs directly to PostgreSQL"""
     try:
         new_entry = AuditLog(
-            username=username,
-            action=action,
+            username=username, 
+            action=action, 
             ip_address=request.remote_addr
         )
         db.session.add(new_entry)
         db.session.commit()
-    except Exception:
-        pass
+    except Exception: pass
 
 # --- 4. Routes ---
 @app.route('/')
@@ -86,7 +88,7 @@ def login():
 
         # Intrusion detection: Check if account is locked
         if user and user.is_locked:
-            record_activity("INTRUSION ALERT: Locked account access attempt", username)
+            record_activity(f"INTRUSION ALERT: Locked account access attempt", username)
             flash('Account locked due to multiple failed attempts')
             return render_template('login.html')
 
@@ -97,21 +99,21 @@ def login():
             record_activity("LOGIN SUCCESS", username)
             return redirect(url_for('dashboard'))
         else:
-            # Honeypot: Logs every failed attempt to the database
-            record_activity("FAILED LOGIN ATTEMPT: Incorrect credentials", username if user else "Unknown User")
+            # THIS IS YOUR HONEYPOT: Logs every failed attempt to the database
+            record_activity(f"FAILED LOGIN ATTEMPT: Incorrect credentials", username if user else "Unknown User")
             if user:
                 user.failed_attempts += 1
                 if user.failed_attempts >= 5:
                     user.is_locked = True
                 db.session.commit()
             flash('Invalid credentials')
-
+            
     return render_template('login.html')
 
 @app.route('/get_logs')
 @login_required
 def get_logs():
-    """Fetches the last 50 security events from PostgreSQL"""
+    """Fetches the last 50 security events from PostgreSQL for the website tab"""
     logs = AuditLog.query.order_by(AuditLog.id.desc()).limit(50).all()
     output = ""
     for log in logs:
@@ -125,7 +127,29 @@ def get_logs():
 @login_required
 def dashboard():
     record_activity("ACCESSED LIVE CAMERA FEED", current_user.username)
-    return render_template('camera.html', operator=current_user.username)
+    return render_template('camera.html')
+
+# --- ADDED: The Video Proxy Route ---
+@app.route('/video_feed')
+@login_required
+def video_feed():
+    """Secure proxy for the live camera stream via Ngrok"""
+    # --- PASTE YOUR NGROK LINK HERE (Keep the /video at the end!) ---
+    camera_url = 'https://YOUR-NGROK-LINK-HERE.ngrok-free.app/video'
+    
+    try:
+        r = requests.get(camera_url, stream=True, timeout=10)
+        
+        def generate():
+            for chunk in r.iter_content(chunk_size=8192):
+                if chunk:
+                    yield chunk
+                    
+        return Response(generate(), mimetype=r.headers.get('Content-Type'))
+        
+    except requests.exceptions.RequestException as e:
+        print(f"Camera Proxy Error: {e}")
+        return "Camera offline", 503
 
 @app.route('/logout')
 @login_required
