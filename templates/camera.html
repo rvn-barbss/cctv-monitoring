@@ -33,7 +33,6 @@
       position: relative;
     }
 
-    /* Grid background — same as login page */
     body::before {
       content: '';
       position: fixed; inset: 0;
@@ -45,7 +44,6 @@
       z-index: 0;
     }
 
-    /* Radial glow blobs like the login bg */
     body::after {
       content: '';
       position: fixed; inset: 0;
@@ -56,7 +54,6 @@
       z-index: 0;
     }
 
-    /* ─── NAVBAR ─────────────────────────────────── */
     .navbar {
       position: relative; z-index: 10;
       display: flex; justify-content: space-between; align-items: center;
@@ -75,39 +72,28 @@
       opacity: 0.5;
     }
 
-    .nav-brand {
-      display: flex; flex-direction: column; gap: 2px;
-    }
+    .nav-brand { display: flex; flex-direction: column; gap: 2px; }
 
     .nav-title {
       font-family: 'Orbitron', monospace;
-      font-size: 15px;
-      font-weight: 700;
-      letter-spacing: 2px;
-      color: #fff;
+      font-size: 15px; font-weight: 700;
+      letter-spacing: 2px; color: #fff;
     }
 
     .nav-subtitle {
-      font-size: 10px;
-      letter-spacing: 4px;
-      color: var(--text-muted);
-      text-transform: uppercase;
+      font-size: 10px; letter-spacing: 4px;
+      color: var(--text-muted); text-transform: uppercase;
     }
 
-    .nav-right {
-      display: flex; align-items: center; gap: 20px;
-    }
+    .nav-right { display: flex; align-items: center; gap: 20px; }
 
     .sys-badge {
       display: flex; align-items: center; gap: 8px;
-      font-size: 11px;
-      letter-spacing: 2px;
-      color: var(--accent-green);
+      font-size: 11px; letter-spacing: 2px; color: var(--accent-green);
     }
 
     .sys-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
+      width: 8px; height: 8px; border-radius: 50%;
       background: var(--accent-green);
       box-shadow: 0 0 8px var(--accent-green);
       animation: blink 2s ease-in-out infinite;
@@ -117,133 +103,91 @@
 
     .logout-btn {
       font-family: 'Orbitron', monospace;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 2px;
-      color: #fff;
-      text-decoration: none;
-      padding: 9px 22px;
-      border-radius: 4px;
-      background: var(--accent-blue);
-      border: none;
+      font-size: 11px; font-weight: 700; letter-spacing: 2px;
+      color: #fff; text-decoration: none;
+      padding: 9px 22px; border-radius: 4px;
+      background: var(--accent-blue); border: none;
       transition: filter 0.2s, box-shadow 0.2s;
       box-shadow: 0 0 18px rgba(26,143,255,0.35);
     }
 
-    .logout-btn:hover {
-      filter: brightness(1.15);
-      box-shadow: 0 0 28px rgba(26,143,255,0.55);
-    }
+    .logout-btn:hover { filter: brightness(1.15); box-shadow: 0 0 28px rgba(26,143,255,0.55); }
 
-    /* ─── MAIN ───────────────────────────────────── */
     .main {
       position: relative; z-index: 1;
-      max-width: 1380px;
-      margin: 32px auto;
-      padding: 0 32px;
+      max-width: 1380px; margin: 32px auto; padding: 0 32px;
     }
 
-    /* ─── TABS ───────────────────────────────────── */
-    .tab-bar {
-      display: flex; gap: 4px;
-      margin-bottom: 24px;
-    }
+    .tab-bar { display: flex; gap: 4px; margin-bottom: 24px; }
 
     .tab-link {
       font-family: 'Orbitron', monospace;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 3px;
+      font-size: 11px; font-weight: 700; letter-spacing: 3px;
       color: var(--text-muted);
       background: rgba(10,26,38,0.7);
       border: 1px solid var(--border-dim);
       border-radius: 6px 6px 0 0;
-      padding: 12px 28px;
-      cursor: pointer;
-      transition: all 0.2s;
-      border-bottom: none;
+      padding: 12px 28px; cursor: pointer;
+      transition: all 0.2s; border-bottom: none;
     }
 
     .tab-link.active {
-      color: var(--accent-cyan);
-      background: var(--bg-card);
+      color: var(--accent-cyan); background: var(--bg-card);
       border-color: var(--border-dim);
       border-top: 2px solid var(--accent-cyan);
       box-shadow: 0 0 14px rgba(0,229,255,0.1);
     }
 
-    .tab-link:hover:not(.active) {
-      color: var(--text-primary);
-      border-color: rgba(0,229,255,0.2);
-    }
+    .tab-link:hover:not(.active) { color: var(--text-primary); border-color: rgba(0,229,255,0.2); }
 
-    /* ─── CARD ───────────────────────────────────── */
     .card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-dim);
-      border-radius: 0 8px 8px 8px;
-      padding: 28px;
-      position: relative;
-      overflow: hidden;
+      background: var(--bg-card); border: 1px solid var(--border-dim);
+      border-radius: 0 8px 8px 8px; padding: 28px;
+      position: relative; overflow: hidden;
     }
 
     .card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
       background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue), transparent);
       opacity: 0.5;
     }
 
     .tab-content { display: none; }
 
-    /* ─── CAMERA TAB ─────────────────────────────── */
-    .camera-layout {
-      display: grid;
-      grid-template-columns: 1fr 270px;
-      gap: 22px;
-    }
+    .camera-layout { display: grid; grid-template-columns: 1fr 270px; gap: 22px; }
 
     .section-label {
-      font-size: 10px;
-      letter-spacing: 4px;
-      color: var(--text-muted);
-      margin-bottom: 12px;
-      display: flex; align-items: center; gap: 8px;
+      font-size: 10px; letter-spacing: 4px; color: var(--text-muted);
+      margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
     }
 
     .section-label::before {
-      content: '';
-      width: 3px; height: 12px;
-      background: var(--accent-cyan);
-      border-radius: 2px;
-      display: block;
-      box-shadow: 0 0 8px var(--accent-cyan);
+      content: ''; width: 3px; height: 12px;
+      background: var(--accent-cyan); border-radius: 2px;
+      display: block; box-shadow: 0 0 8px var(--accent-cyan);
     }
 
     .video-box {
-      background: #000;
-      height: 475px;
-      border: 1px solid var(--border-dim);
-      border-radius: 6px;
+      background: #000; height: 475px;
+      border: 1px solid var(--border-dim); border-radius: 6px;
       display: flex; flex-direction: column;
       justify-content: center; align-items: center;
-      position: relative;
-      overflow: hidden;
+      position: relative; overflow: hidden;
     }
 
     .video-box::after {
-      content: '';
-      position: absolute; inset: 0;
+      content: ''; position: absolute; inset: 0;
       background: repeating-linear-gradient(
         0deg, transparent, transparent 3px,
         rgba(0,229,255,0.012) 3px, rgba(0,229,255,0.012) 4px
       );
-      pointer-events: none;
+      pointer-events: none; z-index: 2;
     }
 
-    .cam-corner { position: absolute; width: 18px; height: 18px; border-color: var(--accent-cyan); border-style: solid; opacity: 0.6; }
+    .cam-corner {
+      position: absolute; width: 18px; height: 18px;
+      border-color: var(--accent-cyan); border-style: solid; opacity: 0.6; z-index: 3;
+    }
     .cam-corner.tl { top:8px; left:8px;   border-width:2px 0 0 2px; }
     .cam-corner.tr { top:8px; right:8px;  border-width:2px 2px 0 0; }
     .cam-corner.bl { bottom:8px; left:8px;  border-width:0 0 2px 2px; }
@@ -252,39 +196,39 @@
     .cam-badge {
       position: absolute; top: 14px; right: 36px;
       display: flex; align-items: center; gap: 6px;
-      font-size: 10px; letter-spacing: 2px; color: var(--accent-amber);
+      font-size: 10px; letter-spacing: 2px; z-index: 3;
     }
 
-    .pulse {
-      width: 7px; height: 7px; border-radius: 50%;
-      background: var(--accent-amber);
-      box-shadow: 0 0 10px var(--accent-amber);
-      animation: blink 1.8s ease-in-out infinite;
+    .cam-badge.live-badge     { color: var(--accent-green); }
+    .cam-badge.searching-badge { color: var(--accent-amber); }
+
+    .pulse { width: 7px; height: 7px; border-radius: 50%; animation: blink 1.8s ease-in-out infinite; }
+    .pulse.green { background: var(--accent-green); box-shadow: 0 0 10px var(--accent-green); }
+    .pulse.amber { background: var(--accent-amber); box-shadow: 0 0 10px var(--accent-amber); }
+
+    #cam-feed {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover; border-radius: 6px;
+      z-index: 1; display: block;
     }
 
-    .scan-sweep {
-      position: absolute; left: 0; right: 0; height: 2px;
-      background: linear-gradient(90deg, transparent, rgba(0,229,255,0.4), transparent);
-      animation: sweep 4s linear infinite;
-      pointer-events: none;
+    .cam-overlay {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      gap: 16px; z-index: 1;
     }
-
-    @keyframes sweep { 0%{top:0;} 100%{top:100%;} }
 
     .search-ring {
-      width: 56px; height: 56px;
-      border-radius: 50%;
+      width: 56px; height: 56px; border-radius: 50%;
       border: 2px solid var(--border-dim);
       border-top-color: var(--accent-cyan);
-      animation: spin 1.6s linear infinite;
-      margin-bottom: 18px;
-      position: relative;
+      animation: spin 1.6s linear infinite; position: relative;
     }
 
     .search-ring::before {
-      content: '';
-      position: absolute; inset: 7px;
-      border-radius: 50%;
+      content: ''; position: absolute; inset: 7px; border-radius: 50%;
       border: 1px solid var(--border-dim);
       border-top-color: var(--accent-blue);
       animation: spin 2.8s linear infinite reverse;
@@ -292,156 +236,118 @@
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .cam-ip {
-      font-size: 11px; letter-spacing: 3px; color: var(--text-muted);
+    .cam-ip { font-size: 11px; letter-spacing: 3px; color: var(--text-muted); }
+    .cam-error-msg { font-size: 13px; letter-spacing: 2px; color: #ff4466; }
+    .cam-error-sub { font-size: 11px; color: var(--text-muted); }
+
+    .retry-btn {
+      margin-top: 6px;
+      font-family: 'Orbitron', monospace;
+      font-size: 10px; letter-spacing: 2px; color: var(--accent-cyan);
+      background: rgba(0,229,255,0.08);
+      border: 1px solid rgba(0,229,255,0.3);
+      border-radius: 4px; padding: 8px 20px;
+      cursor: pointer; transition: all 0.2s;
     }
 
-    /* ─── INTEL SIDEBAR ──────────────────────────── */
+    .retry-btn:hover { background: rgba(0,229,255,0.18); box-shadow: 0 0 12px rgba(0,229,255,0.2); }
+
     .intel-box {
       background: rgba(8,18,28,0.8);
       border: 1px solid var(--border-dim);
-      border-radius: 8px;
-      padding: 22px;
+      border-radius: 8px; padding: 22px;
     }
 
     .intel-title {
       font-family: 'Orbitron', monospace;
-      font-size: 10px;
-      letter-spacing: 3px;
-      color: var(--accent-cyan);
-      margin-bottom: 18px;
-      padding-bottom: 12px;
+      font-size: 10px; letter-spacing: 3px; color: var(--accent-cyan);
+      margin-bottom: 18px; padding-bottom: 12px;
       border-bottom: 1px solid var(--border-dim);
     }
 
-    .intel-row {
-      padding: 13px 0;
-      border-bottom: 1px solid rgba(26,58,80,0.4);
-    }
+    .intel-row { padding: 13px 0; border-bottom: 1px solid rgba(26,58,80,0.4); }
 
     .intel-lbl {
-      font-size: 9px; letter-spacing: 2px;
-      color: var(--text-dim); margin-bottom: 5px;
-      text-transform: uppercase;
+      font-size: 9px; letter-spacing: 2px; color: var(--text-dim);
+      margin-bottom: 5px; text-transform: uppercase;
     }
 
     .intel-val { font-size: 13px; color: var(--text-primary); }
     .intel-val.live  { color: var(--accent-green); text-shadow: 0 0 10px rgba(0,230,118,0.4); }
     .intel-val.user  { color: var(--accent-blue); }
     .intel-val.small { font-size: 11px; color: var(--text-muted); }
+    .intel-val.warn  { font-size: 11px; color: var(--accent-amber); }
 
-    /* ─── LOGS TAB ───────────────────────────────── */
     .logs-title {
       font-family: 'Orbitron', monospace;
-      font-size: 13px; letter-spacing: 2px;
-      color: var(--text-primary);
-      margin-bottom: 22px;
-      display: flex; align-items: center; gap: 12px;
+      font-size: 13px; letter-spacing: 2px; color: var(--text-primary);
+      margin-bottom: 22px; display: flex; align-items: center; gap: 12px;
     }
 
     .logs-title::before {
-      content: '';
-      width: 3px; height: 18px;
-      background: var(--accent-cyan);
-      border-radius: 2px;
+      content: ''; width: 3px; height: 18px;
+      background: var(--accent-cyan); border-radius: 2px;
       box-shadow: 0 0 10px var(--accent-cyan);
     }
 
     .log-filters {
       display: flex; align-items: center;
-      gap: 6px; flex-wrap: wrap;
-      margin-bottom: 20px;
+      gap: 6px; flex-wrap: wrap; margin-bottom: 20px;
     }
 
-    .filter-label {
-      font-size: 10px; letter-spacing: 2px;
-      color: var(--text-dim); margin-right: 4px;
-    }
+    .filter-label { font-size: 10px; letter-spacing: 2px; color: var(--text-dim); margin-right: 4px; }
 
     .filter-btn {
       font-family: 'Share Tech Mono', monospace;
-      font-size: 11px; letter-spacing: 1px;
-      color: var(--text-muted);
-      background: rgba(10,26,38,0.8);
-      border: 1px solid var(--border-dim);
-      border-radius: 4px;
-      padding: 7px 16px;
-      cursor: pointer;
-      transition: all 0.15s;
+      font-size: 11px; letter-spacing: 1px; color: var(--text-muted);
+      background: rgba(10,26,38,0.8); border: 1px solid var(--border-dim);
+      border-radius: 4px; padding: 7px 16px; cursor: pointer; transition: all 0.15s;
     }
 
     .filter-btn:hover { color: var(--accent-cyan); border-color: rgba(0,229,255,0.3); }
 
     .filter-btn.active {
-      background: rgba(0,229,255,0.12);
-      color: var(--accent-cyan);
-      border-color: rgba(0,229,255,0.5);
-      box-shadow: 0 0 10px rgba(0,229,255,0.15);
+      background: rgba(0,229,255,0.12); color: var(--accent-cyan);
+      border-color: rgba(0,229,255,0.5); box-shadow: 0 0 10px rgba(0,229,255,0.15);
     }
 
-    .filter-sep {
-      width: 1px; height: 22px;
-      background: var(--border-dim);
-      margin: 0 6px;
-    }
+    .filter-sep { width: 1px; height: 22px; background: var(--border-dim); margin: 0 6px; }
 
     .sort-btn {
       font-family: 'Share Tech Mono', monospace;
       font-size: 11px; color: var(--text-muted);
-      background: rgba(10,26,38,0.8);
-      border: 1px solid var(--border-dim);
-      border-radius: 4px;
-      padding: 7px 16px;
-      cursor: pointer;
-      display: flex; align-items: center; gap: 7px;
-      transition: all 0.15s;
+      background: rgba(10,26,38,0.8); border: 1px solid var(--border-dim);
+      border-radius: 4px; padding: 7px 16px; cursor: pointer;
+      display: flex; align-items: center; gap: 7px; transition: all 0.15s;
     }
 
     .sort-btn:hover { color: var(--accent-cyan); border-color: rgba(0,229,255,0.3); }
 
-    .log-count {
-      margin-left: auto;
-      font-size: 11px; color: var(--text-dim);
-    }
-
+    .log-count { margin-left: auto; font-size: 11px; color: var(--text-dim); }
     .log-table-container { overflow-x: auto; }
 
-    .log-table {
-      width: 100%; border-collapse: collapse;
-      font-family: 'Share Tech Mono', monospace;
-    }
-
+    .log-table { width: 100%; border-collapse: collapse; font-family: 'Share Tech Mono', monospace; }
     .log-table thead tr { border-bottom: 1px solid var(--border-dim); }
 
     .log-table th {
       font-family: 'Orbitron', monospace;
-      font-size: 9px; letter-spacing: 3px;
-      color: var(--accent-cyan);
-      padding: 14px 16px;
-      text-align: left; font-weight: 400;
+      font-size: 9px; letter-spacing: 3px; color: var(--accent-cyan);
+      padding: 14px 16px; text-align: left; font-weight: 400;
     }
 
     .log-table td {
-      padding: 11px 16px;
-      font-size: 12px;
-      color: var(--text-muted);
+      padding: 11px 16px; font-size: 12px; color: var(--text-muted);
       border-bottom: 1px solid rgba(26,58,80,0.25);
     }
 
-    .log-table tr:hover td {
-      background: rgba(0,229,255,0.03);
-      color: var(--text-primary);
-    }
+    .log-table tr:hover td { background: rgba(0,229,255,0.03); color: var(--text-primary); }
 
     td.success { color: var(--accent-green); }
     td.failed  { color: #ff4466; }
     td.access  { color: var(--accent-amber); }
     td.user-col { color: var(--accent-blue); }
 
-    @keyframes row-in {
-      from { opacity: 0; transform: translateX(-6px); }
-      to   { opacity: 1; transform: translateX(0); }
-    }
+    @keyframes row-in { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
     .log-table tbody tr { animation: row-in 0.2s ease both; }
   </style>
 </head>
@@ -472,25 +378,42 @@
     <div id="Camera" class="tab-content card" style="display:block;">
       <div class="camera-layout">
         <div>
-          <div class="section-label">NODE · HARDWARE SEARCH ACTIVE</div>
+          <div class="section-label" id="feed-label">NODE · CONNECTING TO STREAM</div>
           <div class="video-box">
             <div class="cam-corner tl"></div>
             <div class="cam-corner tr"></div>
             <div class="cam-corner bl"></div>
             <div class="cam-corner br"></div>
-            <div class="cam-badge"><div class="pulse"></div>SEARCHING</div>
-            <div class="scan-sweep"></div>
-            <div class="search-ring"></div>
-            <div class="cam-ip">SEARCHING FOR 192.168.1.10</div>
+
+            <div class="cam-badge live-badge" id="live-badge" style="display:none;">
+              <div class="pulse green"></div>LIVE
+            </div>
+            <div class="cam-badge searching-badge" id="searching-badge">
+              <div class="pulse amber"></div>CONNECTING
+            </div>
+
+            <img id="cam-feed" style="display:none;" alt="Camera Feed" />
+
+            <div class="cam-overlay" id="connecting-overlay">
+              <div class="search-ring"></div>
+              <div class="cam-ip" id="cam-ip-label">CONNECTING TO 192.168.18.41:8080</div>
+            </div>
+
+            <div class="cam-overlay" id="error-overlay" style="display:none;">
+              <div class="cam-error-msg">⚠ STREAM UNAVAILABLE</div>
+              <div class="cam-error-sub" id="error-detail">Cannot reach 192.168.18.41:8080</div>
+              <button class="retry-btn" onclick="retryFeed()">↺ RETRY CONNECTION</button>
+            </div>
           </div>
         </div>
+
         <div>
           <div class="section-label">NETWORK INTEL</div>
           <div class="intel-box">
             <div class="intel-title">// SYSTEM STATUS</div>
             <div class="intel-row">
               <div class="intel-lbl">Connection</div>
-              <div class="intel-val live">● READY</div>
+              <div class="intel-val live" id="conn-status">● CONNECTING...</div>
             </div>
             <div class="intel-row">
               <div class="intel-lbl">Operator</div>
@@ -501,8 +424,16 @@
               <div class="intel-val small">PostgreSQL (Cloud)</div>
             </div>
             <div class="intel-row">
-              <div class="intel-lbl">Node Port</div>
-              <div class="intel-val small">Scanning RJ45 Port 1...</div>
+              <div class="intel-lbl">Camera IP</div>
+              <div class="intel-val small">192.168.18.41</div>
+            </div>
+            <div class="intel-row">
+              <div class="intel-lbl">Stream Port</div>
+              <div class="intel-val small">8080</div>
+            </div>
+            <div class="intel-row">
+              <div class="intel-lbl">Stream Path</div>
+              <div class="intel-val warn" id="stream-path-display">Auto-detecting...</div>
             </div>
           </div>
         </div>
@@ -548,6 +479,83 @@
   </div>
 
   <script>
+    const CAM_BASE = 'http://192.168.18.41:8080';
+
+    const STREAM_PATHS = [
+      '/video',
+      '/mjpeg/1',
+      '/mjpg/video.mjpg',
+      '/videostream.cgi',
+      '/cgi-bin/mjpg/video.cgi',
+      '/Streaming/Channels/1',
+      '/stream',
+      '/live',
+      '/cam/realmonitor',
+    ];
+
+    function showConnecting() {
+      document.getElementById('connecting-overlay').style.display = 'flex';
+      document.getElementById('error-overlay').style.display = 'none';
+      document.getElementById('cam-feed').style.display = 'none';
+      document.getElementById('live-badge').style.display = 'none';
+      document.getElementById('searching-badge').style.display = 'flex';
+      document.getElementById('conn-status').textContent = '● CONNECTING...';
+      document.getElementById('conn-status').style.color = 'var(--accent-amber)';
+      document.getElementById('feed-label').textContent = 'NODE · CONNECTING TO STREAM';
+    }
+
+    function showLive(path) {
+      document.getElementById('connecting-overlay').style.display = 'none';
+      document.getElementById('error-overlay').style.display = 'none';
+      document.getElementById('cam-feed').style.display = 'block';
+      document.getElementById('live-badge').style.display = 'flex';
+      document.getElementById('searching-badge').style.display = 'none';
+      document.getElementById('conn-status').textContent = '● LIVE';
+      document.getElementById('conn-status').style.color = 'var(--accent-green)';
+      document.getElementById('feed-label').textContent = 'NODE · LIVE CAMERA FEED';
+      document.getElementById('stream-path-display').textContent = path;
+      document.getElementById('stream-path-display').style.color = 'var(--accent-green)';
+    }
+
+    function showError() {
+      document.getElementById('connecting-overlay').style.display = 'none';
+      document.getElementById('error-overlay').style.display = 'flex';
+      document.getElementById('cam-feed').style.display = 'none';
+      document.getElementById('live-badge').style.display = 'none';
+      document.getElementById('searching-badge').style.display = 'none';
+      document.getElementById('conn-status').textContent = '● OFFLINE';
+      document.getElementById('conn-status').style.color = '#ff4466';
+      document.getElementById('feed-label').textContent = 'NODE · STREAM UNAVAILABLE';
+      document.getElementById('stream-path-display').textContent = 'No path responded';
+      document.getElementById('stream-path-display').style.color = '#ff4466';
+      document.getElementById('error-detail').textContent =
+        `Tried ${STREAM_PATHS.length} paths on 192.168.18.41:8080 — all failed`;
+    }
+
+    function tryPath(index) {
+      if (index >= STREAM_PATHS.length) { showError(); return; }
+      const path = STREAM_PATHS[index];
+      const img = document.getElementById('cam-feed');
+
+      document.getElementById('cam-ip-label').textContent =
+        `TRYING ${path} (${index + 1}/${STREAM_PATHS.length})`;
+      document.getElementById('stream-path-display').textContent = `Trying ${path}...`;
+
+      let timeout = setTimeout(() => { img.src = ''; tryPath(index + 1); }, 4000);
+
+      img.onload = () => { clearTimeout(timeout); showLive(path); };
+      img.onerror = () => { clearTimeout(timeout); tryPath(index + 1); };
+      img.src = CAM_BASE + path;
+    }
+
+    function retryFeed() {
+      showConnecting();
+      setTimeout(() => tryPath(0), 500);
+    }
+
+    window.addEventListener('load', () => { showConnecting(); tryPath(0); });
+
+    /* ─── TABS & LOGS ─────────────────────────────── */
     let allLogs = [], activeDays = 7, activeType = 'all', sortAsc = false;
 
     function openTab(evt, tabName) {
