@@ -1,5 +1,6 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash
+import requests
+from flask import Flask, render_template, request, redirect, url_for, flash, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -113,28 +114,4 @@ def login():
 @login_required
 def get_logs():
     """Fetches the last 50 security events from PostgreSQL for the website tab"""
-    logs = AuditLog.query.order_by(AuditLog.id.desc()).limit(50).all()
-    output = ""
-    for log in logs:
-        # Convert to local time (UTC+8 for Philippines)
-        ph_time = log.timestamp + timedelta(hours=8)
-        time_str = ph_time.strftime("%Y-%m-%d %H:%M:%S")
-        output += f"[{time_str} UTC+8] {log.username} - {log.action} ({log.ip_address})\n"
-    return output if output else "No activity recorded yet."
-
-@app.route('/dashboard')
-@login_required
-def dashboard():
-    record_activity("ACCESSED LIVE CAMERA FEED", current_user.username)
-    return render_template('camera.html')
-
-@app.route('/logout')
-@login_required
-def logout():
-    record_activity("LOGOUT", current_user.username)
-    logout_user()
-    return redirect(url_for('login'))
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    logs = AuditLog.query.order_by(AuditLog.id.
