@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'super_secret_exam_key')
+app.secret_key = os.environ.get('FLASK_SECRET_KEY')
 
 # --- 1. PostgreSQL Database Connection ---
 # This links your code to the Railway PostgreSQL database
@@ -42,8 +42,8 @@ with app.app_context():
     try:
         db.create_all()
         # Hidden credentials (stored in Railway Variables, not code)
-        admin_user = os.environ.get('ADMIN_USER', 'admin')
-        admin_pass = os.environ.get('ADMIN_PASS', 'password123')
+        admin_user = os.environ.get('ADMIN_USER')
+        admin_pass = os.environ.get('ADMIN_PASS'))
         
         if not User.query.filter_by(username=admin_user).first():
             new_admin = User(username=admin_user, password_hash=generate_password_hash(admin_pass))
