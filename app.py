@@ -1,6 +1,5 @@
 import os
-import requests
-from flask import Flask, render_template, request, redirect, url_for, flash, Response
+from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -23,6 +22,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+
 # --- 2. Database Models (The Tables) ---
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -31,12 +31,14 @@ class User(UserMixin, db.Model):
     failed_attempts = db.Column(db.Integer, default=0)
     is_locked = db.Column(db.Boolean, default=False)
 
+
 class AuditLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     username = db.Column(db.String(50))
     action = db.Column(db.String(200))
     ip_address = db.Column(db.String(50))
+
 
 # Initialize Database and Create Admin
 with app.app_context():
@@ -47,37 +49,46 @@ with app.app_context():
         admin_pass = os.environ.get('ADMIN_PASS', 'password123')
         
         if not User.query.filter_by(username=admin_user).first():
-            new_admin = User(username=admin_user, password_hash=generate_password_hash(admin_pass))
+            new_admin = User(
+                username=admin_user, 
+                password_hash=generate_password_hash(admin_pass)
+            )
             db.session.add(new_admin)
             db.session.commit()
     except Exception as e:
         print(f"Database Init Error: {e}")
+
 
 # --- 3. Login Management ---
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
 
 def record_activity(action, username="System"):
     """Saves security logs directly to PostgreSQL"""
     try:
         new_entry = AuditLog(
-            username=username, 
-            action=action, 
+            username=username,
+            action=action,
             ip_address=request.remote_addr
         )
         db.session.add(new_entry)
         db.session.commit()
-    except Exception: pass
+    except Exception:
+        pass
+
 
 # --- 4. Routes ---
 @app.route('/')
 def index():
     return redirect(url_for('login'))
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -100,15 +111,21 @@ def login():
             return redirect(url_for('dashboard'))
         else:
             # THIS IS YOUR HONEYPOT: Logs every failed attempt to the database
-            record_activity(f"FAILED LOGIN ATTEMPT: Incorrect credentials", username if user else "Unknown User")
+            record_activity(
+                f"FAILED LOGIN ATTEMPT: Incorrect credentials", 
+                username if user else "Unknown User"
+            )
+            
             if user:
                 user.failed_attempts += 1
                 if user.failed_attempts >= 5:
                     user.is_locked = True
                 db.session.commit()
+            
             flash('Invalid credentials')
             
     return render_template('login.html')
+
 
 @app.route('/get_logs')
 @login_required
@@ -121,7 +138,9 @@ def get_logs():
         ph_time = log.timestamp + timedelta(hours=8)
         time_str = ph_time.strftime("%Y-%m-%d %H:%M:%S")
         output += f"[{time_str} UTC+8] {log.username} - {log.action} ({log.ip_address})\n"
+    
     return output if output else "No activity recorded yet."
+
 
 @app.route('/dashboard')
 @login_required
@@ -129,27 +148,6 @@ def dashboard():
     record_activity("ACCESSED LIVE CAMERA FEED", current_user.username)
     return render_template('camera.html')
 
-# --- ADDED: The Video Proxy Route ---
-@app.route('/video_feed')
-@login_required
-def video_feed():
-    """Secure proxy for the live camera stream via Ngrok"""
-    # --- PASTE YOUR NGROK LINK HERE (Keep the /video at the end!) ---
-    camera_url = 'https://YOUR-NGROK-LINK-HERE.ngrok-free.app/video'
-    
-    try:
-        r = requests.get(camera_url, stream=True, timeout=10)
-        
-        def generate():
-            for chunk in r.iter_content(chunk_size=8192):
-                if chunk:
-                    yield chunk
-                    
-        return Response(generate(), mimetype=r.headers.get('Content-Type'))
-        
-    except requests.exceptions.RequestException as e:
-        print(f"Camera Proxy Error: {e}")
-        return "Camera offline", 503
 
 @app.route('/logout')
 @login_required
@@ -157,6 +155,7 @@ def logout():
     record_activity("LOGOUT", current_user.username)
     logout_user()
     return redirect(url_for('login'))
+
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
