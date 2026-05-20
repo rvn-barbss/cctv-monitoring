@@ -374,7 +374,6 @@
       <button class="tab-link" onclick="openTab(event,'Logs')">LOGS</button>
     </div>
 
-    <!-- CAMERA TAB -->
     <div id="Camera" class="tab-content card" style="display:block;">
       <div class="camera-layout">
         <div>
@@ -396,12 +395,12 @@
 
             <div class="cam-overlay" id="connecting-overlay">
               <div class="search-ring"></div>
-              <div class="cam-ip" id="cam-ip-label">CONNECTING TO 192.168.18.41:8080</div>
+              <div class="cam-ip" id="cam-ip-label">CONNECTING TO CLOUDFLARE SECURE TUNNEL</div>
             </div>
 
             <div class="cam-overlay" id="error-overlay" style="display:none;">
               <div class="cam-error-msg">⚠ STREAM UNAVAILABLE</div>
-              <div class="cam-error-sub" id="error-detail">Cannot reach 192.168.18.41:8080</div>
+              <div class="cam-error-sub" id="error-detail">Cannot reach tunnel connection endpoint</div>
               <button class="retry-btn" onclick="retryFeed()">↺ RETRY CONNECTION</button>
             </div>
           </div>
@@ -424,12 +423,12 @@
               <div class="intel-val small">PostgreSQL (Cloud)</div>
             </div>
             <div class="intel-row">
-              <div class="intel-lbl">Camera IP</div>
-              <div class="intel-val small">192.168.18.41</div>
+              <div class="intel-lbl">Target Host</div>
+              <div class="intel-val small">trycloudflare.com</div>
             </div>
             <div class="intel-row">
               <div class="intel-lbl">Stream Port</div>
-              <div class="intel-val small">8080</div>
+              <div class="intel-val small">443 (HTTPS)</div>
             </div>
             <div class="intel-row">
               <div class="intel-lbl">Stream Path</div>
@@ -440,7 +439,6 @@
       </div>
     </div>
 
-    <!-- LOGS TAB -->
     <div id="Logs" class="tab-content card">
       <div class="logs-title">USER ACTIVITY &amp; ACCESS HISTORY</div>
       <div class="log-filters">
@@ -479,8 +477,10 @@
   </div>
 
   <script>
+    // --- INTEGRATED CLOUDFLARE PUBLIC TUNNEL CONFIGURATION ---
     const CAM_BASE = 'https://occur-theoretical-hist-pads.trycloudflare.com';
 
+    // Prioritized camera endpoint routing path array
     const STREAM_PATHS = [
       '/video',
       '/mjpeg/1',
@@ -529,7 +529,7 @@
       document.getElementById('stream-path-display').textContent = 'No path responded';
       document.getElementById('stream-path-display').style.color = '#ff4466';
       document.getElementById('error-detail').textContent =
-        `Tried ${STREAM_PATHS.length} paths on 192.168.18.41:8080 — all failed`;
+        `Tried ${STREAM_PATHS.length} network paths on cloudflared tunnel — all endpoints failed`;
     }
 
     function tryPath(index) {
@@ -538,8 +538,8 @@
       const img = document.getElementById('cam-feed');
 
       document.getElementById('cam-ip-label').textContent =
-        `TRYING ${path} (${index + 1}/${STREAM_PATHS.length})`;
-      document.getElementById('stream-path-display').textContent = `Trying ${path}...`;
+        `TRYING ENDPOINT ${path} (${index + 1}/${STREAM_PATHS.length})`;
+      document.getElementById('stream-path-display').textContent = `Scanning ${path}...`;
 
       let timeout = setTimeout(() => { img.src = ''; tryPath(index + 1); }, 4000);
 
@@ -555,7 +555,7 @@
 
     window.addEventListener('load', () => { showConnecting(); tryPath(0); });
 
-    /* ─── TABS & LOGS ─────────────────────────────── */
+    /* ─── TABS & AUDIT LOG HANDLING ENGINE ─────────────────────────────── */
     let allLogs = [], activeDays = 7, activeType = 'all', sortAsc = false;
 
     function openTab(evt, tabName) {
