@@ -491,6 +491,7 @@
       '/stream',
       '/live',
       '/cam/realmonitor',
+      '/shot.jpg'
     ];
 
     function showConnecting() {
@@ -541,15 +542,25 @@
         `TRYING ENDPOINT ${path} (${index + 1}/${STREAM_PATHS.length})`;
       document.getElementById('stream-path-display').textContent = `Scanning ${path}...`;
 
-      let timeout = setTimeout(() => { iframeElement.src = ''; tryPath(index + 1); }, 4000);
+      // We use a hidden Image object to ping the path because it gracefully bypasses CORS
+      // and accurately throws an error if the phone returns a 404 Not Found page.
+      const testImg = new Image();
+      let timeout = setTimeout(() => { testImg.src = ''; tryPath(index + 1); }, 4000);
 
-      // Webframe loads safely pass browser cookie integrity flags
-      iframeElement.onload = () => { 
-        clearTimeout(timeout); 
-        showLive(path); 
+      testImg.onload = () => {
+        clearTimeout(timeout);
+        // Valid stream found! Push the working URL into the iframe.
+        iframeElement.src = CAM_BASE + path;
+        showLive(path);
       };
-      
-      iframeElement.src = CAM_BASE + path;
+
+      testImg.onerror = () => {
+        clearTimeout(timeout);
+        // Path returned 404 or failed. Skip to the next path in the array.
+        tryPath(index + 1);
+      };
+
+      testImg.src = CAM_BASE + path;
     }
 
     function retryFeed() {
