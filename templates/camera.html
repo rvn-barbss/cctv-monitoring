@@ -209,7 +209,6 @@
     #cam-feed {
       position: absolute; inset: 0;
       width: 100%; height: 100%;
-      /* This single line forces the video to zoom and fill the entire box, removing black bars */
       object-fit: cover; 
       border-radius: 6px;
       z-index: 1; display: block;
@@ -351,6 +350,59 @@
 
     @keyframes row-in { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
     .log-table tbody tr { animation: row-in 0.2s ease both; }
+
+    /* --- ADMIN PANEL STYLES --- */
+    .admin-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+    
+    .admin-card {
+      background: rgba(10,26,38,0.5);
+      border: 1px solid var(--border-dim);
+      border-radius: 6px;
+      padding: 24px;
+    }
+
+    .admin-input-group { margin-bottom: 16px; }
+    .admin-input-group label {
+      display: block; font-size: 10px; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 8px;
+    }
+    
+    .admin-input {
+      width: 100%; padding: 10px;
+      background: var(--bg-input); border: 1px solid var(--border-dim);
+      border-radius: 4px; color: var(--text-primary); font-family: 'Share Tech Mono', monospace;
+    }
+    
+    .admin-input:focus { outline: none; border-color: var(--accent-cyan); }
+    
+    .admin-btn {
+      font-family: 'Orbitron', monospace;
+      font-size: 11px; letter-spacing: 2px; color: #fff;
+      background: var(--accent-blue); border: none; border-radius: 4px;
+      padding: 10px 20px; cursor: pointer; transition: all 0.2s; width: 100%;
+    }
+    
+    .admin-btn:hover { filter: brightness(1.2); box-shadow: 0 0 15px rgba(26,143,255,0.4); }
+    .admin-btn.danger { background: var(--accent-red); }
+    .admin-btn.danger:hover { box-shadow: 0 0 15px rgba(204,17,51,0.4); }
+    .admin-btn.dl { background: var(--accent-green); margin-bottom: 20px; color: #000; font-weight: 900;}
+    .admin-btn.dl:hover { box-shadow: 0 0 15px rgba(0,230,118,0.4); }
+
+    .user-list { list-style: none; margin-top: 15px; }
+    .user-list li {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px; border-bottom: 1px solid var(--border-dim);
+      font-size: 12px;
+    }
+    .user-list li:last-child { border-bottom: none; }
+    .badge { padding: 3px 8px; border-radius: 3px; font-size: 9px; letter-spacing: 1px; }
+    .badge.locked { background: rgba(204,17,51,0.2); color: var(--accent-red); border: 1px solid var(--accent-red); }
+    .badge.ok { background: rgba(0,230,118,0.1); color: var(--accent-green); border: 1px solid var(--accent-green); }
+    .badge.admin-tag { background: rgba(0,229,255,0.1); color: var(--accent-cyan); border: 1px solid var(--accent-cyan); }
+
   </style>
 </head>
 <body>
@@ -374,6 +426,10 @@
     <div class="tab-bar">
       <button class="tab-link active" onclick="openTab(event,'Camera')">CAMERA FEED</button>
       <button class="tab-link" onclick="openTab(event,'Logs')">LOGS</button>
+      
+      {% if is_admin %}
+      <button class="tab-link" onclick="openTab(event,'Admin')">ADMIN SETTINGS</button>
+      {% endif %}
     </div>
 
     <div id="Camera" class="tab-content card" style="display:block;">
@@ -475,6 +531,70 @@
         </table>
       </div>
     </div>
+    
+    {% if is_admin %}
+    <div id="Admin" class="tab-content card">
+      
+      <a href="/admin/export_logs" class="admin-btn dl" style="text-decoration:none; display:inline-block; width:auto;">⬇ DOWNLOAD SECURE AUDIT LOGS (CSV)</a>
+      
+      <div class="admin-grid">
+        
+        <div class="admin-card">
+          <div class="logs-title">ADD NEW OPERATOR</div>
+          <form action="/admin/manage_users" method="POST">
+            <input type="hidden" name="action" value="add">
+            <div class="admin-input-group">
+              <label>USERNAME</label>
+              <input type="text" name="target_username" class="admin-input" required>
+            </div>
+            <div class="admin-input-group">
+              <label>PASSWORD</label>
+              <input type="password" name="password" class="admin-input" required>
+            </div>
+            <button type="submit" class="admin-btn">CREATE USER</button>
+          </form>
+        </div>
+
+        <div class="admin-card">
+          <div class="logs-title">SYSTEM USERS</div>
+          <ul class="user-list">
+            {% for u in all_users %}
+            <li>
+              <span>
+                {{ u.username }}
+                {% if u.is_admin %}<span class="badge admin-tag">ADMIN</span>{% endif %}
+                {% if u.is_locked %}
+                  <span class="badge locked">LOCKED ({{ u.failed_attempts }} fails)</span>
+                {% else %}
+                  <span class="badge ok">ACTIVE</span>
+                {% endif %}
+              </span>
+              
+              <div style="display:flex; gap:8px;">
+                {% if u.is_locked %}
+                <form action="/admin/manage_users" method="POST" style="display:inline;">
+                  <input type="hidden" name="action" value="unlock">
+                  <input type="hidden" name="target_username" value="{{ u.username }}">
+                  <button type="submit" class="admin-btn" style="padding: 5px 10px; width:auto;">UNLOCK</button>
+                </form>
+                {% endif %}
+                
+                {% if not u.is_admin %}
+                <form action="/admin/manage_users" method="POST" style="display:inline;">
+                  <input type="hidden" name="action" value="delete">
+                  <input type="hidden" name="target_username" value="{{ u.username }}">
+                  <button type="submit" class="admin-btn danger" style="padding: 5px 10px; width:auto;" onclick="return confirm('Delete user {{ u.username }}?')">DELETE</button>
+                </form>
+                {% endif %}
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+        
+      </div>
+    </div>
+    {% endif %}
 
   </div>
 
@@ -544,21 +664,17 @@
         `TRYING ENDPOINT ${path} (${index + 1}/${STREAM_PATHS.length})`;
       document.getElementById('stream-path-display').textContent = `Scanning ${path}...`;
 
-      // We use a hidden Image object to ping the path because it gracefully bypasses CORS
-      // and accurately throws an error if the phone returns a 404 Not Found page.
       const testImg = new Image();
       let timeout = setTimeout(() => { testImg.src = ''; tryPath(index + 1); }, 4000);
 
       testImg.onload = () => {
         clearTimeout(timeout);
-        // Valid stream found! Push the working URL into the visible UI image element.
         feedElement.src = CAM_BASE + path;
         showLive(path);
       };
 
       testImg.onerror = () => {
         clearTimeout(timeout);
-        // Path returned 404 or failed. Skip to the next path in the array.
         tryPath(index + 1);
       };
 
