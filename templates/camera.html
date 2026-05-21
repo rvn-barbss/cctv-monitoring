@@ -209,7 +209,9 @@
     #cam-feed {
       position: absolute; inset: 0;
       width: 100%; height: 100%;
-      border: none; background: transparent;
+      /* This single line forces the video to zoom and fill the entire box, removing black bars */
+      object-fit: cover; 
+      border-radius: 6px;
       z-index: 1; display: block;
     }
 
@@ -391,7 +393,7 @@
               <div class="pulse amber"></div>CONNECTING
             </div>
 
-            <iframe id="cam-feed" style="display:none;" sandbox="allow-scripts allow-same-origin"></iframe>
+            <img id="cam-feed" style="display:none;" alt="Camera Feed" />
 
             <div class="cam-overlay" id="connecting-overlay">
               <div class="search-ring"></div>
@@ -536,7 +538,7 @@
     function tryPath(index) {
       if (index >= STREAM_PATHS.length) { showError(); return; }
       const path = STREAM_PATHS[index];
-      const iframeElement = document.getElementById('cam-feed');
+      const feedElement = document.getElementById('cam-feed');
 
       document.getElementById('cam-ip-label').textContent =
         `TRYING ENDPOINT ${path} (${index + 1}/${STREAM_PATHS.length})`;
@@ -549,8 +551,8 @@
 
       testImg.onload = () => {
         clearTimeout(timeout);
-        // Valid stream found! Push the working URL into the iframe.
-        iframeElement.src = CAM_BASE + path;
+        // Valid stream found! Push the working URL into the visible UI image element.
+        feedElement.src = CAM_BASE + path;
         showLive(path);
       };
 
