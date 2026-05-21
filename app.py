@@ -1,18 +1,19 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash, abort
+from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
-# Load local .env file
+# Load local .env file (for your eyes only)
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'super_secret_exam_key')
 
 # --- 1. PostgreSQL Database Connection ---
+# This links your code to the Railway PostgreSQL database
 db_url = os.environ.get('DATABASE_URL')
 if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
@@ -21,14 +22,13 @@ app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# --- 2. Database Models ---
+# --- 2. Database Models (The Tables) ---
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     failed_attempts = db.Column(db.Integer, default=0)
     is_locked = db.Column(db.Boolean, default=False)
-    is_admin = db.Column(db.Boolean, default=False) # New field to identify admins
 
 class AuditLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -37,19 +37,16 @@ class AuditLog(db.Model):
     action = db.Column(db.String(200))
     ip_address = db.Column(db.String(50))
 
-# Initialize Database and Create Default Admin
+# Initialize Database and Create Admin
 with app.app_context():
     try:
         db.create_all()
+        # Hidden credentials (stored in Railway Variables, not code)
         admin_user = os.environ.get('ADMIN_USER', 'admin')
         admin_pass = os.environ.get('ADMIN_PASS', 'password123')
         
         if not User.query.filter_by(username=admin_user).first():
-            new_admin = User(
-                username=admin_user, 
-                password_hash=generate_password_hash(admin_pass),
-                is_admin=True
-            )
+            new_admin = User(username=admin_user, password_hash=generate_password_hash(admin_pass))
             db.session.add(new_admin)
             db.session.commit()
     except Exception as e:
@@ -76,7 +73,7 @@ def record_activity(action, username="System"):
         db.session.commit()
     except Exception: pass
 
-# --- 4. Core Routes ---
+# --- 4. Routes ---
 @app.route('/')
 def index():
     return redirect(url_for('login'))
@@ -88,8 +85,9 @@ def login():
         password = request.form.get('password')
         user = User.query.filter_by(username=username).first()
 
+        # Intrusion detection: Check if account is locked
         if user and user.is_locked:
-            record_activity("INTRUSION ALERT: Locked account access attempt", username)
+            record_activity(f"INTRUSION ALERT: Locked account access attempt", username)
             flash('Account locked due to multiple failed attempts')
             return render_template('login.html')
 
@@ -100,7 +98,8 @@ def login():
             record_activity("LOGIN SUCCESS", username)
             return redirect(url_for('dashboard'))
         else:
-            record_activity("FAILED LOGIN ATTEMPT: Incorrect credentials", username if user else "Unknown User")
+            # THIS IS YOUR HONEYPOT: Logs every failed attempt to the database
+            record_activity(f"FAILED LOGIN ATTEMPT: Incorrect credentials", username if user else "Unknown User")
             if user:
                 user.failed_attempts += 1
                 if user.failed_attempts >= 5:
@@ -110,23 +109,24 @@ def login():
             
     return render_template('login.html')
 
-@app.route('/dashboard')
-@login_required
-def dashboard():
-    record_activity("ACCESSED LIVE CAMERA FEED", current_user.username)
-    # Passing current user data to the frontend so you can show/hide admin panels
-    return render_template('camera.html', is_admin=current_user.is_admin)
-
 @app.route('/get_logs')
 @login_required
 def get_logs():
+    """Fetches the last 50 security events from PostgreSQL for the website tab"""
     logs = AuditLog.query.order_by(AuditLog.id.desc()).limit(50).all()
     output = ""
     for log in logs:
+        # Convert to local time (UTC+8 for Philippines)
         ph_time = log.timestamp + timedelta(hours=8)
         time_str = ph_time.strftime("%Y-%m-%d %H:%M:%S")
         output += f"[{time_str} UTC+8] {log.username} - {log.action} ({log.ip_address})\n"
     return output if output else "No activity recorded yet."
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    record_activity("ACCESSED LIVE CAMERA FEED", current_user.username)
+    return render_template('camera.html')
 
 @app.route('/logout')
 @login_required
@@ -134,48 +134,6 @@ def logout():
     record_activity("LOGOUT", current_user.username)
     logout_user()
     return redirect(url_for('login'))
-
-# --- 5. Admin Management Routes ---
-
-@app.route('/admin/manage_users', methods=['POST'])
-@login_required
-def manage_users():
-    # Strict check to ensure only the admin can trigger these actions
-    if not current_user.is_admin:
-        abort(403)
-        
-    action = request.form.get('action')
-    target_username = request.form.get('target_username')
-
-    if action == 'add':
-        password = request.form.get('password')
-        if User.query.filter_by(username=target_username).first():
-            flash("User already exists.")
-        else:
-            new_user = User(
-                username=target_username, 
-                password_hash=generate_password_hash(password)
-            )
-            db.session.add(new_user)
-            db.session.commit()
-            record_activity(f"ADMIN ACTION: Created user {target_username}", current_user.username)
-            
-    elif action == 'unlock':
-        user = User.query.filter_by(username=target_username).first()
-        if user:
-            user.is_locked = False
-            user.failed_attempts = 0
-            db.session.commit()
-            record_activity(f"ADMIN ACTION: Unlocked user {target_username}", current_user.username)
-            
-    elif action == 'delete':
-        user = User.query.filter_by(username=target_username).first()
-        if user and not user.is_admin: # Prevent admin from deleting themselves
-            db.session.delete(user)
-            db.session.commit()
-            record_activity(f"ADMIN ACTION: Deleted user {target_username}", current_user.username)
-
-    return redirect(url_for('dashboard'))
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
