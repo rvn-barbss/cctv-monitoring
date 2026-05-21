@@ -209,7 +209,7 @@
     #cam-feed {
       position: absolute; inset: 0;
       width: 100%; height: 100%;
-      object-fit: cover; border-radius: 6px;
+      border: none; background: transparent;
       z-index: 1; display: block;
     }
 
@@ -391,7 +391,7 @@
               <div class="pulse amber"></div>CONNECTING
             </div>
 
-            <img id="cam-feed" style="display:none;" alt="Camera Feed" />
+            <iframe id="cam-feed" style="display:none;" sandbox="allow-scripts allow-same-origin"></iframe>
 
             <div class="cam-overlay" id="connecting-overlay">
               <div class="search-ring"></div>
@@ -478,7 +478,7 @@
 
   <script>
     // --- INTEGRATED CLOUDFLARE PUBLIC TUNNEL CONFIGURATION ---
-    const CAM_BASE = 'https://professor-lawyer-airline-multimedia.trycloudflare.com';
+    const CAM_BASE = 'https://washer-image-marker-proprietary.trycloudflare.com';
 
     // Prioritized camera endpoint routing path array
     const STREAM_PATHS = [
@@ -535,17 +535,21 @@
     function tryPath(index) {
       if (index >= STREAM_PATHS.length) { showError(); return; }
       const path = STREAM_PATHS[index];
-      const img = document.getElementById('cam-feed');
+      const iframeElement = document.getElementById('cam-feed');
 
       document.getElementById('cam-ip-label').textContent =
         `TRYING ENDPOINT ${path} (${index + 1}/${STREAM_PATHS.length})`;
       document.getElementById('stream-path-display').textContent = `Scanning ${path}...`;
 
-      let timeout = setTimeout(() => { img.src = ''; tryPath(index + 1); }, 4000);
+      let timeout = setTimeout(() => { iframeElement.src = ''; tryPath(index + 1); }, 4000);
 
-      img.onload = () => { clearTimeout(timeout); showLive(path); };
-      img.onerror = () => { clearTimeout(timeout); tryPath(index + 1); };
-      img.src = CAM_BASE + path;
+      // Webframe loads safely pass browser cookie integrity flags
+      iframeElement.onload = () => { 
+        clearTimeout(timeout); 
+        showLive(path); 
+      };
+      
+      iframeElement.src = CAM_BASE + path;
     }
 
     function retryFeed() {
