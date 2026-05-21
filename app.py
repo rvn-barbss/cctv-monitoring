@@ -55,18 +55,30 @@ with app.app_context():
             db.session.commit()
             print("Successfully patched Railway database with is_admin column.")
 
-        # Create the Master Admin from Railway Variables
+        # Create OR UPGRADE the Master Admin from Railway Variables
         admin_user = os.environ.get('ADMIN_USER', 'admin')
         admin_pass = os.environ.get('ADMIN_PASS', 'password123')
         
-        if not User.query.filter_by(username=admin_user).first():
+        # Check if the user already exists in the database
+        master_admin = User.query.filter_by(username=admin_user).first()
+        
+        if not master_admin:
+            # If they don't exist at all, create them
             new_admin = User(
                 username=admin_user, 
                 password_hash=generate_password_hash(admin_pass),
                 is_admin=True
             )
             db.session.add(new_admin)
-            db.session.commit()
+            print("Created new master admin account.")
+        else:
+            # THE FIX: If they DO exist from the old code, force their admin status to True
+            master_admin.is_admin = True
+            # We also sync their password to match your Railway Variables just to be safe
+            master_admin.password_hash = generate_password_hash(admin_pass)
+            print("Upgraded existing account to Master Admin.")
+            
+        db.session.commit()
     except Exception as e:
         print(f"Database Init Error: {e}")
 
