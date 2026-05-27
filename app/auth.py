@@ -17,12 +17,10 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         user = User.query.filter_by(username=username).first()
-
         if user and user.is_locked:
             record_activity("INTRUSION ALERT: Locked account access attempt", user.id)
             flash('Account locked due to multiple failed attempts', 'error')
             return render_template('login.html')
-
         if user and check_password_hash(user.password_hash, password):
             session['pre_2fa_user_id'] = user.id
             return redirect(url_for('auth.verify_2fa'))
@@ -88,5 +86,6 @@ def verify_2fa():
 def logout():
     if current_user.is_authenticated:
         record_activity("LOGOUT", current_user.id)
+    session.pop('camera_logged', None)
     logout_user()
     return redirect(url_for('auth.login'))

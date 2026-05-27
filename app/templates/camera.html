@@ -594,6 +594,8 @@
                   <button type="submit" class="admin-btn warn" style="padding: 5px 10px; width:auto;" onclick="return confirm('Reset password for {{ u.username }} to default123? This also resets their 2FA.')">RESET PASS</button>
                 </form>
 
+                <button type="button" class="admin-btn" style="padding: 5px 10px; width:auto; background:#1a5a7a;" onclick="openEditModal('{{ u.username }}')">EDIT NAME</button>
+
                 {% if u.is_locked %}
                 <form action="/admin/manage_users" method="POST" style="display:inline;">
                   <input type="hidden" name="action" value="unlock">
@@ -774,7 +776,6 @@
                   : log.action.includes('REQUESTED') || log.action.includes('ALERT') ? 'alert'
                   : log.action.includes('ACCESSED')      ? 'access' : '';
 
-       
         const key = makeKey(log);
         const isNew = isNewData && !existingKeys.has(key);
         const animClass = isNew ? 'new-row' : '';
@@ -790,7 +791,6 @@
 
       document.getElementById('log-body').innerHTML = html || '<tr><td colspan="5" style="color:var(--text-dim)">No logs found.</td></tr>';
 
-    
       if (isNewData) {
         existingKeys = new Set(allLogs.map(makeKey));
       }
@@ -798,7 +798,6 @@
 
     function updateLogs() {
       fetch('/get_logs').then(r => r.text()).then(data => {
-       
         if (data === lastRawData) return;
         lastRawData = data;
         allLogs = data.trim().split('\n').map(parseLine).filter(Boolean);
@@ -809,6 +808,46 @@
     setInterval(() => {
       if (document.getElementById('Logs').style.display === 'block') updateLogs();
     }, 3000);
-  </script>
+
+    function openEditModal(username) {
+      document.getElementById('modal-target').value = username;
+      document.getElementById('modal-current').textContent = username;
+      document.getElementById('modal-new').value = '';
+      const modal = document.getElementById('edit-modal');
+      modal.style.display = 'flex';
+    }
+
+    function closeEditModal() {
+      document.getElementById('edit-modal').style.display = 'none';
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('edit-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeEditModal();
+    });
+  </script>  <!-- Edit Username Modal -->
+  <div id="edit-modal" style="display:none; position:fixed; inset:0; z-index:999; background:rgba(0,0,0,0.7); justify-content:center; align-items:center;">
+    <div style="background:var(--bg-card); border:1px solid var(--border-glow); border-radius:8px; padding:32px; width:380px; position:relative;">
+      <div style="font-family:'Orbitron',monospace; font-size:13px; letter-spacing:2px; color:var(--accent-cyan); margin-bottom:20px;">EDIT USERNAME</div>
+      <form action="/admin/manage_users" method="POST">
+        <input type="hidden" name="action" value="edit_username">
+        <input type="hidden" name="target_username" id="modal-target">
+        <div style="margin-bottom:14px;">
+          <label style="display:block; font-size:10px; letter-spacing:2px; color:var(--text-muted); margin-bottom:8px;">CURRENT USERNAME</label>
+          <div id="modal-current" style="font-size:13px; color:var(--accent-blue); padding:8px; background:var(--bg-input); border-radius:4px; border:1px solid var(--border-dim);"></div>
+        </div>
+        <div style="margin-bottom:20px;">
+          <label style="display:block; font-size:10px; letter-spacing:2px; color:var(--text-muted); margin-bottom:8px;">NEW USERNAME</label>
+          <input type="text" name="new_username" id="modal-new" required
+            style="width:100%; padding:10px; background:var(--bg-input); border:1px solid var(--border-dim); border-radius:4px; color:var(--text-primary); font-family:'Share Tech Mono',monospace;">
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button type="submit" class="admin-btn" style="flex:1;">SAVE</button>
+          <button type="button" class="admin-btn danger" style="flex:1;" onclick="closeEditModal()">CANCEL</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
 </body>
 </html>

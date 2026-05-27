@@ -34,6 +34,18 @@ def manage_users():
             db.session.add(new_user)
             db.session.commit()
             record_activity(f"ADMIN ACTION: Created user {target_username}", current_user.id)
+
+    elif action == 'edit_username':
+        new_username = request.form.get('new_username', '').strip()
+        user = User.query.filter_by(username=target_username).first()
+        if user and new_username:
+            if User.query.filter_by(username=new_username).first():
+                record_activity(f"ADMIN ACTION FAILED: Username {new_username} already exists", current_user.id)
+            else:
+                old_username = user.username
+                user.username = new_username
+                db.session.commit()
+                record_activity(f"ADMIN ACTION: Renamed user {old_username} to {new_username}", current_user.id)
             
     elif action == 'unlock':
         user = User.query.filter_by(username=target_username).first()
@@ -61,6 +73,7 @@ def manage_users():
             record_activity(f"ADMIN ACTION: Deleted user {target_username}", current_user.id)
 
     return redirect(url_for('views.dashboard'))
+
 
 @admin_bp.route('/admin/export_logs')
 @login_required
