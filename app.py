@@ -224,12 +224,16 @@ def manage_users():
 
     if action == 'add':
         password = request.form.get('password')
+        role = request.form.get('role')
+        is_admin_role = True if role == 'admin' else False
+        
         if User.query.filter_by(username=target_username).first():
             record_activity(f"ADMIN ACTION FAILED: Attempted to create duplicate user {target_username}", current_user.id)
         else:
             new_user = User(
                 username=target_username, 
-                password_hash=generate_password_hash(password)
+                password_hash=generate_password_hash(password),
+                is_admin=is_admin_role
             )
             db.session.add(new_user)
             db.session.commit()
@@ -242,6 +246,16 @@ def manage_users():
             user.failed_attempts = 0
             db.session.commit()
             record_activity(f"ADMIN ACTION: Unlocked user {target_username}", current_user.id)
+            
+    elif action == 'reset':
+        user = User.query.filter_by(username=target_username).first()
+        if user:
+            user.password_hash = generate_password_hash('default123')
+            user.totp_secret = None
+            user.is_locked = False
+            user.failed_attempts = 0
+            db.session.commit()
+            record_activity(f"ADMIN ACTION: Reset password and 2FA for {target_username}", current_user.id)
             
     elif action == 'delete':
         user = User.query.filter_by(username=target_username).first()

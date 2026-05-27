@@ -311,6 +311,11 @@
       background: rgba(0,229,255,0.12); color: var(--accent-cyan);
       border-color: rgba(0,229,255,0.5); box-shadow: 0 0 10px rgba(0,229,255,0.15);
     }
+    
+    .filter-btn.alert-btn.active {
+      background: rgba(255,179,0,0.15); color: var(--accent-amber);
+      border-color: var(--accent-amber); box-shadow: 0 0 10px rgba(255,179,0,0.2);
+    }
 
     .filter-sep { width: 1px; height: 22px; background: var(--border-dim); margin: 0 6px; }
 
@@ -345,13 +350,13 @@
 
     td.success { color: var(--accent-green); }
     td.failed  { color: #ff4466; }
-    td.access  { color: var(--accent-amber); }
+    td.access  { color: var(--accent-cyan); }
+    td.alert   { color: var(--accent-amber); font-weight: bold; }
     td.user-col { color: var(--accent-blue); }
 
     @keyframes row-in { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
     .log-table tbody tr { animation: row-in 0.2s ease both; }
 
-    /* --- ADMIN PANEL STYLES --- */
     .admin-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -388,6 +393,8 @@
     .admin-btn:hover { filter: brightness(1.2); box-shadow: 0 0 15px rgba(26,143,255,0.4); }
     .admin-btn.danger { background: var(--accent-red); }
     .admin-btn.danger:hover { box-shadow: 0 0 15px rgba(204,17,51,0.4); }
+    .admin-btn.warn { background: var(--accent-amber); color: #000; font-weight: bold;}
+    .admin-btn.warn:hover { box-shadow: 0 0 15px rgba(255,179,0,0.4); }
     .admin-btn.dl { background: var(--accent-green); margin-bottom: 20px; color: #000; font-weight: 900;}
     .admin-btn.dl:hover { box-shadow: 0 0 15px rgba(0,230,118,0.4); }
 
@@ -409,7 +416,7 @@
 
   <nav class="navbar">
     <div class="nav-brand">
-      <div class="nav-title">CCTV ni Gilbert</div>
+      <div class="nav-title">CCTV SYSTEM</div>
       <div class="nav-subtitle">Advanced CCTV Monitoring Interface</div>
     </div>
     <div class="nav-right">
@@ -453,7 +460,7 @@
 
             <div class="cam-overlay" id="connecting-overlay">
               <div class="search-ring"></div>
-              <div class="cam-ip" id="cam-ip-label">CONNECTING TO CLOUDFLARE SECURE TUNNEL</div>
+              <div class="cam-ip" id="cam-ip-label">CONNECTING TO SECURE TUNNEL</div>
             </div>
 
             <div class="cam-overlay" id="error-overlay" style="display:none;">
@@ -473,20 +480,12 @@
               <div class="intel-val live" id="conn-status">● CONNECTING...</div>
             </div>
             <div class="intel-row">
-              <div class="intel-lbl">Operator</div>
-              <div class="intel-val user">admin</div>
-            </div>
-            <div class="intel-row">
               <div class="intel-lbl">Database</div>
               <div class="intel-val small">PostgreSQL (Cloud)</div>
             </div>
             <div class="intel-row">
               <div class="intel-lbl">Target Host</div>
               <div class="intel-val small">trycloudflare.com</div>
-            </div>
-            <div class="intel-row">
-              <div class="intel-lbl">Stream Port</div>
-              <div class="intel-val small">443 (HTTPS)</div>
             </div>
             <div class="intel-row">
               <div class="intel-lbl">Stream Path</div>
@@ -507,9 +506,9 @@
         <div class="filter-sep"></div>
         <span class="filter-label">TYPE:</span>
         <button class="filter-btn active" onclick="setType(this,'all')">All</button>
-        <button class="filter-btn" onclick="setType(this,'success')">Login Success</button>
-        <button class="filter-btn" onclick="setType(this,'failed')">Failed Login</button>
-        <button class="filter-btn" onclick="setType(this,'access')">Accessed</button>
+        <button class="filter-btn alert-btn" onclick="setType(this,'alerts')">Alerts & Requests</button>
+        <button class="filter-btn" onclick="setType(this,'success')">Logins</button>
+        <button class="filter-btn" onclick="setType(this,'failed')">Failed</button>
         <div class="filter-sep"></div>
         <span class="filter-label">SORT:</span>
         <button class="sort-btn" id="sort-btn" onclick="toggleSort()">
@@ -543,6 +542,15 @@
           <div class="logs-title">ADD NEW OPERATOR</div>
           <form action="/admin/manage_users" method="POST">
             <input type="hidden" name="action" value="add">
+            
+            <div class="admin-input-group">
+              <label>ROLE</label>
+              <select name="role" class="admin-input">
+                <option value="operator">Normal Operator</option>
+                <option value="admin">Master Admin</option>
+              </select>
+            </div>
+            
             <div class="admin-input-group">
               <label>USERNAME</label>
               <input type="text" name="target_username" class="admin-input" required>
@@ -571,6 +579,12 @@
               </span>
               
               <div style="display:flex; gap:8px;">
+                <form action="/admin/manage_users" method="POST" style="display:inline;">
+                  <input type="hidden" name="action" value="reset">
+                  <input type="hidden" name="target_username" value="{{ u.username }}">
+                  <button type="submit" class="admin-btn warn" style="padding: 5px 10px; width:auto;" onclick="return confirm('Reset password for {{ u.username }} to default123? This also resets their 2FA.')">RESET PASS</button>
+                </form>
+
                 {% if u.is_locked %}
                 <form action="/admin/manage_users" method="POST" style="display:inline;">
                   <input type="hidden" name="action" value="unlock">
@@ -599,21 +613,11 @@
   </div>
 
   <script>
-    // --- INTEGRATED CLOUDFLARE PUBLIC TUNNEL CONFIGURATION ---
     const CAM_BASE = 'https://washer-image-marker-proprietary.trycloudflare.com';
-
-    // Prioritized camera endpoint routing path array
     const STREAM_PATHS = [
-      '/video',
-      '/mjpeg/1',
-      '/mjpg/video.mjpg',
-      '/videostream.cgi',
-      '/cgi-bin/mjpg/video.cgi',
-      '/Streaming/Channels/1',
-      '/stream',
-      '/live',
-      '/cam/realmonitor',
-      '/shot.jpg'
+      '/video', '/mjpeg/1', '/mjpg/video.mjpg', '/videostream.cgi',
+      '/cgi-bin/mjpg/video.cgi', '/Streaming/Channels/1', '/stream',
+      '/live', '/cam/realmonitor', '/shot.jpg'
     ];
 
     function showConnecting() {
@@ -651,8 +655,6 @@
       document.getElementById('feed-label').textContent = 'NODE · STREAM UNAVAILABLE';
       document.getElementById('stream-path-display').textContent = 'No path responded';
       document.getElementById('stream-path-display').style.color = '#ff4466';
-      document.getElementById('error-detail').textContent =
-        `Tried ${STREAM_PATHS.length} network paths on cloudflared tunnel — all endpoints failed`;
     }
 
     function tryPath(index) {
@@ -660,8 +662,7 @@
       const path = STREAM_PATHS[index];
       const feedElement = document.getElementById('cam-feed');
 
-      document.getElementById('cam-ip-label').textContent =
-        `TRYING ENDPOINT ${path} (${index + 1}/${STREAM_PATHS.length})`;
+      document.getElementById('cam-ip-label').textContent = `TRYING ENDPOINT ${path}`;
       document.getElementById('stream-path-display').textContent = `Scanning ${path}...`;
 
       const testImg = new Image();
@@ -688,7 +689,6 @@
 
     window.addEventListener('load', () => { showConnecting(); tryPath(0); });
 
-    /* ─── TABS & AUDIT LOG HANDLING ENGINE ─────────────────────────────── */
     let allLogs = [], activeDays = 7, activeType = 'all', sortAsc = false;
 
     function openTab(evt, tabName) {
@@ -735,7 +735,7 @@
         if (activeDays > 0 && (now - log.timestamp) / 86400000 > activeDays) return false;
         if (activeType === 'success' && !log.action.includes('LOGIN SUCCESS')) return false;
         if (activeType === 'failed'  && !log.action.includes('FAILED LOGIN'))  return false;
-        if (activeType === 'access'  && !log.action.includes('ACCESSED'))      return false;
+        if (activeType === 'alerts'  && !log.action.includes('REQUESTED') && !log.action.includes('ALERT')) return false;
         return true;
       });
       filtered.sort((a, b) => sortAsc ? a.timestamp - b.timestamp : b.timestamp - a.timestamp);
@@ -745,6 +745,7 @@
       filtered.forEach((log, i) => {
         const cls = log.action.includes('LOGIN SUCCESS') ? 'success'
                   : log.action.includes('FAILED LOGIN')  ? 'failed'
+                  : log.action.includes('REQUESTED') || log.action.includes('ALERT') ? 'alert'
                   : log.action.includes('ACCESSED')      ? 'access' : '';
         html += `<tr style="animation-delay:${i*18}ms">
           <td>${log.date}</td><td>${log.time}</td>
