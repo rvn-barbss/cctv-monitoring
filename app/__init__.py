@@ -1,0 +1,76 @@
+import os
+from datetime import timedelta
+from flask import Flask
+from sqlalchemy import text
+from werkzeug.security import generate_password_hash
+from app.extensions import db, login_manager
+
+def create_app():
+    app = Flask(__name__)
+    app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'super_secret_exam_key')
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
+    app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+
+    db_url = os.environ.get('DATABASE_URL')
+    if db_url and db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    db.init_app(app)
+    login_manager.init_app(app)
+    login_manager.login_view = 'main.login'
+
+    from app.models import User
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
+
+    from app.routes import main_bp
+    app.register_blueprint(main_bp)
+
+    with app.app_context():
+        try:
+            db.create_all()
+            try:
+                db.session.execute(text('SELECT is_admin FROM "user" LIMIT 1'))
+            except Exception:
+                db.session.rollback()
+                db.session.execute(text('ALTER TABLE "user" ADD COLUMN is_admin BOOLEAN DEFAULT FALSE'))
+                db.session.commit()
+            
+            try:
+                db.session.execute(text('SELECT totp_secret FROM "user" LIMIT 1'))
+            except Exception:
+                db.session.rollback()
+                db.session.execute(text('ALTER TABLE "user" ADD COLUMN totp_secret VARCHAR(32)'))
+                db.session.commit()
+
+            try:
+                db.session.execute(text('SELECT user_id FROM audit_log LIMIT 1'))
+            except Exception:
+                db.session.rollback()
+                db.session.execute(text('ALTER TABLE audit_log ADD COLUMN user_id INTEGER REFERENCES "user"(id)'))
+                db.session.commit()
+
+            admin_user = os.environ.get('ADMIN_USER', 'admin')
+            admin_pass = os.environ.get('ADMIN_PASS', 'password123')
+            master_admin = User.query.filter_by(username=admin_user).first()
+            
+            if not master_admin:
+                new_admin = User(
+                    username=admin_user, 
+                    password_hash=generate_password_hash(admin_pass),
+                    is_admin=True
+                )
+                db.session.add(new_admin)
+            else:
+                master_admin.is_admin = True
+                
+            db.session.commit()
+        except Exception:
+            pass
+
+    return app
