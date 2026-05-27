@@ -1,5 +1,5 @@
 from datetime import timedelta
-from flask import Blueprint, render_template, redirect, url_for
+from flask import Blueprint, render_template, redirect, url_for, session
 from flask_login import login_required, current_user
 from app.models import User, AuditLog
 from app.utils import record_activity
@@ -13,7 +13,11 @@ def index():
 @views_bp.route('/dashboard')
 @login_required
 def dashboard():
-    record_activity("ACCESSED LIVE CAMERA FEED", current_user.id)
+    # Mag-log lang isang beses per session
+    if not session.get('camera_logged'):
+        record_activity("ACCESSED LIVE CAMERA FEED", current_user.id)
+        session['camera_logged'] = True
+
     all_users = User.query.all() if current_user.is_admin else []
     return render_template('camera.html', is_admin=current_user.is_admin, all_users=all_users)
 
