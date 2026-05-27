@@ -21,15 +21,20 @@ def create_app():
 
     db.init_app(app)
     login_manager.init_app(app)
-    login_manager.login_view = 'main.login'
+    login_manager.login_view = 'auth.login'
 
     from app.models import User
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
 
-    from app.routes import main_bp
-    app.register_blueprint(main_bp)
+    # Import and register the separated blueprints
+    from app.auth import auth_bp
+    from app.admin import admin_bp
+    from app.views import views_bp
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(views_bp)
 
     with app.app_context():
         try:
