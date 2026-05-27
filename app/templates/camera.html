@@ -510,6 +510,7 @@
         <button class="filter-btn alert-btn" onclick="setType(this,'alerts')">Alerts & Requests</button>
         <button class="filter-btn" onclick="setType(this,'success')">Logins</button>
         <button class="filter-btn" onclick="setType(this,'failed')">Failed</button>
+        <button class="filter-btn" onclick="setType(this,'passreset')">Password Resets</button>
         <div class="filter-sep"></div>
         <span class="filter-label">SORT:</span>
         <button class="sort-btn" id="sort-btn" onclick="toggleSort()">
@@ -743,7 +744,8 @@
         if (activeDays > 0 && (now - log.timestamp) / 86400000 > activeDays) return false;
         if (activeType === 'success' && !log.action.includes('LOGIN SUCCESS')) return false;
         if (activeType === 'failed'  && !log.action.includes('FAILED LOGIN'))  return false;
-        if (activeType === 'alerts'  && !log.action.includes('REQUESTED') && !log.action.includes('ALERT')) return false;
+        if (activeType === 'alerts'    && !log.action.includes('REQUESTED') && !log.action.includes('ALERT')) return false;
+        if (activeType === 'passreset' && !log.action.includes('PASSWORD RESET REQUESTED')) return false;
         return true;
       });
       filtered.sort((a, b) => sortAsc ? a.timestamp - b.timestamp : b.timestamp - a.timestamp);
@@ -756,6 +758,7 @@
                   : log.action.includes('REQUESTED') || log.action.includes('ALERT') ? 'alert'
                   : log.action.includes('ACCESSED')      ? 'access' : '';
 
+      
         const key = makeKey(log);
         const isNew = isNewData && !existingKeys.has(key);
         const animClass = isNew ? 'new-row' : '';
@@ -771,7 +774,7 @@
 
       document.getElementById('log-body').innerHTML = html || '<tr><td colspan="5" style="color:var(--text-dim)">No logs found.</td></tr>';
 
-    
+      // ✅ Update existing keys after render
       if (isNewData) {
         existingKeys = new Set(allLogs.map(makeKey));
       }
