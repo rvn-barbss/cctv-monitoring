@@ -82,6 +82,13 @@ with app.app_context():
             db.session.execute(text('ALTER TABLE "user" ADD COLUMN totp_secret VARCHAR(32)'))
             db.session.commit()
 
+        try:
+            db.session.execute(text('SELECT user_id FROM audit_log LIMIT 1'))
+        except Exception:
+            db.session.rollback()
+            db.session.execute(text('ALTER TABLE audit_log ADD COLUMN user_id INTEGER REFERENCES "user"(id)'))
+            db.session.commit()
+
         admin_user = os.environ.get('ADMIN_USER', 'admin')
         admin_pass = os.environ.get('ADMIN_PASS', 'password123')
         
@@ -100,7 +107,7 @@ with app.app_context():
         db.session.commit()
     except Exception:
         pass
-
+    
 @app.route('/')
 def index():
     return redirect(url_for('login'))
