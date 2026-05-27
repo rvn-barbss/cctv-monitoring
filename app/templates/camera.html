@@ -700,6 +700,7 @@
 
     window.addEventListener('load', () => { showConnecting(); tryPath(0); });
 
+  
     let allLogs = [], activeDays = 7, activeType = 'all', sortAsc = false;
     let lastRawData = null;
 
@@ -741,6 +742,7 @@
       return { date, time, user: m[2], action: m[3], ip: m[4], timestamp: new Date(`${date} ${time}`) };
     }
 
+   
     let existingKeys = new Set();
 
     function makeKey(log) {
@@ -776,6 +778,7 @@
                   : log.action.includes('REQUESTED') || log.action.includes('ALERT') ? 'alert'
                   : log.action.includes('ACCESSED')      ? 'access' : '';
 
+       
         const key = makeKey(log);
         const isNew = isNewData && !existingKeys.has(key);
         const animClass = isNew ? 'new-row' : '';
@@ -791,6 +794,7 @@
 
       document.getElementById('log-body').innerHTML = html || '<tr><td colspan="5" style="color:var(--text-dim)">No logs found.</td></tr>';
 
+     
       if (isNewData) {
         existingKeys = new Set(allLogs.map(makeKey));
       }
@@ -825,7 +829,97 @@
     document.getElementById('edit-modal').addEventListener('click', function(e) {
       if (e.target === this) closeEditModal();
     });
-  </script>  <!-- Edit Username Modal -->
+
+    let lastResetCount = 0;
+
+    function showResetToast(username, time) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast-notif';
+      toast.innerHTML = `
+        <div class="toast-icon">⚠</div>
+        <div class="toast-body">
+          <div class="toast-title">PASSWORD RESET REQUESTED</div>
+          <div class="toast-msg">User <strong>${username}</strong> has requested a password reset.</div>
+          <div class="toast-time">${time} UTC+8</div>
+        </div>
+        <button class="toast-close" onclick="dismissToast(this.parentElement)">✕</button>
+        <div class="toast-progress"></div>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => dismissToast(toast), 6000);
+    }
+
+    function dismissToast(toast) {
+      if (!toast || toast.classList.contains('hiding')) return;
+      toast.classList.add('hiding');
+      setTimeout(() => toast.remove(), 300);
+    }
+
+    // Check for new password reset requests every 3s
+    function checkResetRequests() {
+      fetch('/get_logs').then(r => r.text()).then(data => {
+        if (!data || data === 'No activity recorded yet.') return;
+        const resets = data.trim().split('\n').filter(l => l.includes('PASSWORD RESET REQUESTED'));
+        if (lastResetCount === 0) { lastResetCount = resets.length; return; }
+        if (resets.length > lastResetCount) {
+          const newResets = resets.slice(0, resets.length - lastResetCount);
+          newResets.forEach(line => {
+            const m = line.match(/\[(.*?)\]\s(.*?)\s-/);
+            if (m) showResetToast(m[2], m[1]);
+          });
+          lastResetCount = resets.length;
+        }
+      });
+    }
+
+    setInterval(checkResetRequests, 3000);
+    checkResetRequests();
+  </script>
+
+  <!-- Toast Container -->
+  <div id="toast-container" style="position:fixed; top:24px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:10px; max-width:360px; width:100%;"></div>
+
+  <style>
+    .toast-notif {
+      display: flex; align-items: flex-start; gap: 14px;
+      background: #0a1e2e;
+      border: 1px solid var(--accent-amber);
+      border-left: 4px solid var(--accent-amber);
+      border-radius: 6px; padding: 14px 16px;
+      box-shadow: 0 0 24px rgba(255,179,0,0.2);
+      animation: toast-in 0.3s ease;
+      position: relative; overflow: hidden;
+    }
+    .toast-notif.hiding { animation: toast-out 0.3s ease forwards; }
+    @keyframes toast-in  { from { opacity:0; transform:translateX(40px); } to { opacity:1; transform:translateX(0); } }
+    @keyframes toast-out { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(40px); } }
+    .toast-notif .toast-icon { font-size:20px; margin-top:2px; }
+    .toast-notif .toast-body { flex:1; }
+    .toast-notif .toast-title {
+      font-family: 'Orbitron', monospace;
+      font-size:10px; letter-spacing:2px;
+      color: var(--accent-amber); margin-bottom:5px;
+    }
+    .toast-notif .toast-msg  { font-size:12px; color:var(--text-primary); line-height:1.5; }
+    .toast-notif .toast-msg strong { color: var(--accent-blue); }
+    .toast-notif .toast-time { font-size:10px; color:var(--text-muted); margin-top:4px; }
+    .toast-notif .toast-close {
+      background:none; border:none; color:var(--text-muted);
+      cursor:pointer; font-size:16px; padding:0; line-height:1;
+      margin-top:1px; transition:color 0.2s;
+    }
+    .toast-notif .toast-close:hover { color:var(--text-primary); }
+    .toast-notif .toast-progress {
+      position:absolute; bottom:0; left:0;
+      height:3px; background:var(--accent-amber);
+      border-radius:0 0 0 6px;
+      animation: shrink 6s linear forwards;
+    }
+    @keyframes shrink { from { width:100%; } to { width:0%; } }
+  </style>
+
+  <!-- Edit Username Modal -->
   <div id="edit-modal" style="display:none; position:fixed; inset:0; z-index:999; background:rgba(0,0,0,0.7); justify-content:center; align-items:center;">
     <div style="background:var(--bg-card); border:1px solid var(--border-glow); border-radius:8px; padding:32px; width:380px; position:relative;">
       <div style="font-family:'Orbitron',monospace; font-size:13px; letter-spacing:2px; color:var(--accent-cyan); margin-bottom:20px;">EDIT USERNAME</div>
