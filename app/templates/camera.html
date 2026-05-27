@@ -499,6 +499,13 @@
 
     <div id="Logs" class="tab-content card">
       <div class="logs-title">USER ACTIVITY &amp; ACCESS HISTORY</div>
+      <div id="log-summary" style="display:flex; gap:24px; margin-bottom:18px; flex-wrap:wrap;">
+        <span style="font-size:11px; letter-spacing:2px; color:var(--text-muted);">TOTAL: <span id="sum-total" style="color:var(--text-primary);">0</span></span>
+        <span style="font-size:11px; letter-spacing:2px; color:var(--text-muted);">LOGINS: <span id="sum-logins" style="color:var(--accent-green);">0</span></span>
+        <span style="font-size:11px; letter-spacing:2px; color:var(--text-muted);">FAILED: <span id="sum-failed" style="color:#ff4466;">0</span></span>
+        <span style="font-size:11px; letter-spacing:2px; color:var(--text-muted);">PASSWORD RESETS: <span id="sum-resets" style="color:var(--accent-amber);">0</span></span>
+        <span style="font-size:11px; letter-spacing:2px; color:var(--text-muted);">ADMIN ACTIONS: <span id="sum-admin" style="color:var(--accent-cyan);">0</span></span>
+      </div>
       <div class="log-filters">
         <span class="filter-label">PERIOD:</span>
         <button class="filter-btn active" onclick="setFilter(this,7)">Last 7 Days</button>
@@ -751,6 +758,15 @@
       filtered.sort((a, b) => sortAsc ? a.timestamp - b.timestamp : b.timestamp - a.timestamp);
       document.getElementById('log-count').textContent = `${filtered.length} record${filtered.length !== 1 ? 's' : ''}`;
 
+      // Summary counts (based on period filter, not type filter)
+      const now2 = new Date();
+      const baseLogs = activeDays > 0 ? allLogs.filter(l => (now2 - l.timestamp) / 86400000 <= activeDays) : allLogs;
+      document.getElementById('sum-total').textContent  = baseLogs.length;
+      document.getElementById('sum-logins').textContent = baseLogs.filter(l => l.action.includes('LOGIN SUCCESS')).length;
+      document.getElementById('sum-failed').textContent = baseLogs.filter(l => l.action.includes('FAILED LOGIN')).length;
+      document.getElementById('sum-resets').textContent = baseLogs.filter(l => l.action.includes('PASSWORD RESET REQUESTED')).length;
+      document.getElementById('sum-admin').textContent  = baseLogs.filter(l => l.action.includes('ADMIN ACTION')).length;
+
       let html = '';
       filtered.forEach((log, i) => {
         const cls = log.action.includes('LOGIN SUCCESS') ? 'success'
@@ -758,7 +774,7 @@
                   : log.action.includes('REQUESTED') || log.action.includes('ALERT') ? 'alert'
                   : log.action.includes('ACCESSED')      ? 'access' : '';
 
-      
+       
         const key = makeKey(log);
         const isNew = isNewData && !existingKeys.has(key);
         const animClass = isNew ? 'new-row' : '';
@@ -774,7 +790,7 @@
 
       document.getElementById('log-body').innerHTML = html || '<tr><td colspan="5" style="color:var(--text-dim)">No logs found.</td></tr>';
 
-      // ✅ Update existing keys after render
+    
       if (isNewData) {
         existingKeys = new Set(allLogs.map(makeKey));
       }
@@ -782,7 +798,7 @@
 
     function updateLogs() {
       fetch('/get_logs').then(r => r.text()).then(data => {
-        // ✅ FIX: Only re-render if data actually changed
+       
         if (data === lastRawData) return;
         lastRawData = data;
         allLogs = data.trim().split('\n').map(parseLine).filter(Boolean);
