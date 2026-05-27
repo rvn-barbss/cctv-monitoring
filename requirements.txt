@@ -5,3 +5,6 @@ psycopg2-binary
 Flask-SQLAlchemy
 python-dotenv
 gunicorn
+pyotp
+qrcode
+pillow

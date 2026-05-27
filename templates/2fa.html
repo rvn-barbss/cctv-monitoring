@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>2FA Verification | CCTV Monitoring System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            height: 100vh; display: flex; justify-content: center; align-items: center;
+            font-family: 'Share Tech Mono', monospace; overflow: hidden;
+            background: #050b14; position: relative;
+        }
+        .login-card {
+            position: relative; width: 100%; max-width: 430px; padding: 45px;
+            border-radius: 18px; background: rgba(10, 15, 25, 0.88);
+            border: 1px solid rgba(0,255,255,0.15); z-index: 2; text-align: center;
+        }
+        h2 { color: #ffffff; font-size: 24px; margin-bottom: 20px; text-shadow: 0 0 10px rgba(0,255,255,0.4); }
+        .qr-code { width: 200px; height: 200px; margin: 0 auto 20px auto; border: 2px solid #00d9ff; padding: 10px; background: white; }
+        .input-field {
+            width: 100%; padding: 14px 16px; border-radius: 10px; border: 1px solid rgba(0,255,255,0.1);
+            background: rgba(255,255,255,0.03); color: #ffffff; outline: none; margin-bottom: 20px;
+            text-align: center; font-size: 18px; font-family: 'Share Tech Mono', monospace; letter-spacing: 4px;
+        }
+        .login-btn {
+            width: 100%; padding: 14px; border: none; border-radius: 10px;
+            background: linear-gradient(135deg, #0078ff, #00b7ff); color: white; cursor: pointer;
+        }
+        .subtitle { color: #8ca0b3; font-size: 13px; margin-bottom: 20px; }
+        .error { background: rgba(255, 76, 76, 0.12); color: #ff7b7b; padding: 12px; border-radius: 10px; margin-bottom: 18px; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>TWO-FACTOR AUTHENTICATION</h2>
+        
+        {% if is_first_time %}
+            <p class="subtitle">Scan the QR code below with Google Authenticator to set up your account, then enter the 6-digit code.</p>
+            <img src="data:image/png;base64,{{ qr_b64 }}" class="qr-code" alt="QR Code">
+        {% else %}
+            <p class="subtitle">Open Google Authenticator on your phone and enter the 6-digit code.</p>
+        {% endif %}
+        
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              <div class="error">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+        
+        <form method="post">
+            <input type="text" name="token" class="input-field" placeholder="000000" maxlength="6" required autocomplete="off">
+            <button type="submit" class="login-btn">VERIFY IDENTITY</button>
+        </form>
+    </div>
+</body>
+</html>
