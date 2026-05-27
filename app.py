@@ -107,7 +107,7 @@ with app.app_context():
         db.session.commit()
     except Exception:
         pass
-    
+
 @app.route('/')
 def index():
     return redirect(url_for('login'))
@@ -121,7 +121,7 @@ def login():
 
         if user and user.is_locked:
             record_activity("INTRUSION ALERT: Locked account access attempt", user.id)
-            flash('Account locked due to multiple failed attempts')
+            flash('Account locked due to multiple failed attempts', 'error')
             return render_template('login.html')
 
         if user and check_password_hash(user.password_hash, password):
@@ -134,9 +134,20 @@ def login():
                 if user.failed_attempts >= 5:
                     user.is_locked = True
                 db.session.commit()
-            flash('Invalid credentials')
+            flash('Invalid credentials', 'error')
             
     return render_template('login.html')
+
+@app.route('/forgot_password', methods=['POST'])
+def forgot_password():
+    username = request.form.get('username')
+    user = User.query.filter_by(username=username).first()
+    
+    if user:
+        record_activity("PASSWORD RESET REQUESTED", user.id)
+    
+    flash('If that account exists, a reset request has been sent to the Master Admin.', 'success')
+    return redirect(url_for('login'))
 
 @app.route('/verify_2fa', methods=['GET', 'POST'])
 def verify_2fa():
@@ -164,7 +175,7 @@ def verify_2fa():
             record_activity("LOGIN SUCCESS", user.id)
             return redirect(url_for('dashboard'))
         else:
-            flash('Invalid Authenticator Code')
+            flash('Invalid Authenticator Code', 'error')
             
     qr_b64 = None
     if is_first_time:
