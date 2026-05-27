@@ -354,8 +354,9 @@
     td.alert   { color: var(--accent-amber); font-weight: bold; }
     td.user-col { color: var(--accent-blue); }
 
+    /* ✅ FIX: Animation only plays on NEW rows, not on re-renders */
     @keyframes row-in { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
-    .log-table tbody tr { animation: row-in 0.2s ease both; }
+    .log-table tbody tr.new-row { animation: row-in 0.3s ease both; }
 
     .admin-grid {
       display: grid;
@@ -690,6 +691,7 @@
     window.addEventListener('load', () => { showConnecting(); tryPath(0); });
 
     let allLogs = [], activeDays = 7, activeType = 'all', sortAsc = false;
+    let lastRawData = null;
 
     function openTab(evt, tabName) {
       document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
@@ -729,7 +731,13 @@
       return { date, time, user: m[2], action: m[3], ip: m[4], timestamp: new Date(`${date} ${time}`) };
     }
 
-    function renderLogs() {
+    let existingKeys = new Set();
+
+    function makeKey(log) {
+      return `${log.date}_${log.time}_${log.user}_${log.action}_${log.ip}`;
+    }
+
+    function renderLogs(isNewData = false) {
       const now = new Date();
       let filtered = allLogs.filter(log => {
         if (activeDays > 0 && (now - log.timestamp) / 86400000 > activeDays) return false;
@@ -747,20 +755,35 @@
                   : log.action.includes('FAILED LOGIN')  ? 'failed'
                   : log.action.includes('REQUESTED') || log.action.includes('ALERT') ? 'alert'
                   : log.action.includes('ACCESSED')      ? 'access' : '';
-        html += `<tr style="animation-delay:${i*18}ms">
+
+        const key = makeKey(log);
+        const isNew = isNewData && !existingKeys.has(key);
+        const animClass = isNew ? 'new-row' : '';
+        const delay = isNew ? `style="animation-delay:${i*18}ms"` : '';
+
+        html += `<tr class="${animClass}" ${delay}>
           <td>${log.date}</td><td>${log.time}</td>
           <td class="user-col">${log.user}</td>
           <td class="${cls}">${log.action}</td>
           <td>${log.ip}</td>
         </tr>`;
       });
+
       document.getElementById('log-body').innerHTML = html || '<tr><td colspan="5" style="color:var(--text-dim)">No logs found.</td></tr>';
+
+    
+      if (isNewData) {
+        existingKeys = new Set(allLogs.map(makeKey));
+      }
     }
 
     function updateLogs() {
       fetch('/get_logs').then(r => r.text()).then(data => {
+        // ✅ FIX: Only re-render if data actually changed
+        if (data === lastRawData) return;
+        lastRawData = data;
         allLogs = data.trim().split('\n').map(parseLine).filter(Boolean);
-        renderLogs();
+        renderLogs(true);
       });
     }
 
