@@ -19,7 +19,6 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-
         user = User.query.filter_by(username=username).first()
 
         if user and user.is_locked:
@@ -40,7 +39,6 @@ def login():
                 db.session.commit()
             flash('Invalid credentials', 'error')
             return render_template('login.html')
-
     return render_template('login.html')
 
 @auth_bp.route('/forgot_password', methods=['POST'])
@@ -60,15 +58,18 @@ def verify_2fa():
         return redirect(url_for('auth.login'))
 
     user = User.query.get(session['pre_2fa_user_id'])
+    
+    if not user:
+        session.pop('pre_2fa_user_id', None)
+        return redirect(url_for('auth.login'))
 
     totp_attempts = session.get('totp_attempts', 0)
     if totp_attempts >= TOTP_MAX_ATTEMPTS:
         session.pop('pre_2fa_user_id', None)
         session.pop('totp_attempts', None)
-        if user:
-            user.is_locked = True
-            db.session.commit()
-            record_activity("INTRUSION ALERT: TOTP brute-force lockout triggered", user.id)
+        user.is_locked = True
+        db.session.commit()
+        record_activity("INTRUSION ALERT: TOTP brute-force lockout triggered", user.id)
         flash('Too many failed 2FA attempts. Account locked.', 'error')
         return redirect(url_for('auth.login'))
 
@@ -85,11 +86,9 @@ def verify_2fa():
         if totp.verify(token):
             user.failed_attempts = 0
             db.session.commit()
-
-            pre_2fa_id = session.pop('pre_2fa_user_id', None)
+            session.pop('pre_2fa_user_id', None)
             session.clear()
             session['_fresh'] = True
-
             login_user(user)
             session.permanent = True
             record_activity("LOGIN SUCCESS", user.id)

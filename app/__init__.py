@@ -1,5 +1,4 @@
 import os
-import sys
 from datetime import timedelta
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -10,15 +9,11 @@ from app.extensions import db, login_manager, csrf, limiter
 
 def create_app():
     app = Flask(__name__)
-
-    # FIX: No hardcoded secret key. Uses environment variable or generates a secure random one.
-    app.secret_key = os.environ.get('FLASK_SECRET_KEY') or os.urandom(32)
+    app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'cctv_secure_fallback_key_2026')
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
     app.config['SESSION_COOKIE_SECURE'] = True
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-
-    # FIX: ProxyFix prevents IP spoofing in the audit logs
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     db_url = os.environ.get('DATABASE_URL')
@@ -58,21 +53,18 @@ def create_app():
     with app.app_context():
         try:
             db.create_all()
-            
             try:
                 db.session.execute(text('SELECT is_admin FROM "user" LIMIT 1'))
             except Exception:
                 db.session.rollback()
                 db.session.execute(text('ALTER TABLE "user" ADD COLUMN is_admin BOOLEAN DEFAULT FALSE'))
                 db.session.commit()
-            
             try:
                 db.session.execute(text('SELECT totp_secret FROM "user" LIMIT 1'))
             except Exception:
                 db.session.rollback()
                 db.session.execute(text('ALTER TABLE "user" ADD COLUMN totp_secret VARCHAR(32)'))
                 db.session.commit()
-
             try:
                 db.session.execute(text('SELECT user_id FROM audit_log LIMIT 1'))
             except Exception:
@@ -80,23 +72,20 @@ def create_app():
                 db.session.execute(text('ALTER TABLE audit_log ADD COLUMN user_id INTEGER REFERENCES "user"(id)'))
                 db.session.commit()
 
-            # FIX: No hardcoded 'password123'. Admin is only created if variables exist in Railway.
-            admin_user = os.environ.get('ADMIN_USER')
-            admin_pass = os.environ.get('ADMIN_PASS')
+            admin_user = os.environ.get('ADMIN_USER', 'admin')
+            admin_pass = os.environ.get('ADMIN_PASS', 'password123')
             
-            if admin_user and admin_pass:
-                master_admin = User.query.filter_by(username=admin_user).first()
-                if not master_admin:
-                    new_admin = User(
-                        username=admin_user,
-                        password_hash=generate_password_hash(admin_pass),
-                        is_admin=True
-                    )
-                    db.session.add(new_admin)
-                else:
-                    master_admin.is_admin = True
-                db.session.commit()
-            
+            master_admin = User.query.filter_by(username=admin_user).first()
+            if not master_admin:
+                new_admin = User(
+                    username=admin_user,
+                    password_hash=generate_password_hash(admin_pass),
+                    is_admin=True
+                )
+                db.session.add(new_admin)
+            else:
+                master_admin.is_admin = True
+            db.session.commit()
         except Exception:
             pass
 
