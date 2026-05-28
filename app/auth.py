@@ -5,21 +5,16 @@ from base64 import b64encode
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, current_user
 from werkzeug.security import check_password_hash
-from app.extensions import db
+from app.extensions import db, limiter
 from app.models import User
 from app.utils import record_activity
 
 auth_bp = Blueprint('auth', __name__)
 
-# ---------------------------------------------------------------
-# FIX 5: TOTP brute-force limit — max attempts before lockout.
-# Stored in server-side session (not cookie-side) so it can't
-# be reset by the client.
-# ---------------------------------------------------------------
 TOTP_MAX_ATTEMPTS = 5
 
-
 @auth_bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")
 def login():
     if request.method == 'POST':
         username = request.form.get('username')
@@ -34,7 +29,7 @@ def login():
 
         if user and check_password_hash(user.password_hash, password):
             session['pre_2fa_user_id'] = user.id
-            session['totp_attempts'] = 0   # FIX 5: reset attempt counter on new login
+            session['totp_attempts'] = 0
             return redirect(url_for('auth.verify_2fa'))
         else:
             if user:
@@ -43,34 +38,29 @@ def login():
                 if user.failed_attempts >= 5:
                     user.is_locked = True
                 db.session.commit()
-            # FIX: same message whether user exists or not (prevents username enumeration)
             flash('Invalid credentials', 'error')
             return render_template('login.html')
 
     return render_template('login.html')
 
-
 @auth_bp.route('/forgot_password', methods=['POST'])
+@limiter.limit("3 per minute")
 def forgot_password():
     username = request.form.get('username')
     user = User.query.filter_by(username=username).first()
     if user:
         record_activity("PASSWORD RESET REQUESTED", user.id)
-    # FIX: same message whether user exists or not (prevents username enumeration)
     flash('If that account exists, a reset request has been sent to the Master Admin.', 'success')
     return redirect(url_for('auth.login'))
 
-
 @auth_bp.route('/verify_2fa', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def verify_2fa():
     if 'pre_2fa_user_id' not in session:
         return redirect(url_for('auth.login'))
 
     user = User.query.get(session['pre_2fa_user_id'])
 
-    # ---------------------------------------------------------------
-    # FIX 5: Lock out after too many TOTP failures
-    # ---------------------------------------------------------------
     totp_attempts = session.get('totp_attempts', 0)
     if totp_attempts >= TOTP_MAX_ATTEMPTS:
         session.pop('pre_2fa_user_id', None)
@@ -96,10 +86,6 @@ def verify_2fa():
             user.failed_attempts = 0
             db.session.commit()
 
-            # ---------------------------------------------------------------
-            # FIX 8: Regenerate session ID after successful login to prevent
-            # session fixation attacks.
-            # ---------------------------------------------------------------
             pre_2fa_id = session.pop('pre_2fa_user_id', None)
             session.clear()
             session['_fresh'] = True
@@ -122,7 +108,6 @@ def verify_2fa():
         qr_b64 = b64encode(buf.getvalue()).decode('utf-8')
 
     return render_template('2fa.html', qr_b64=qr_b64, is_first_time=is_first_time)
-
 
 @auth_bp.route('/logout')
 def logout():
