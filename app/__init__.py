@@ -9,7 +9,11 @@ from app.extensions import db, login_manager, csrf, limiter
 
 def create_app():
     app = Flask(__name__)
-    app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'cctv_secure_fallback_key_2026')
+    app.secret_key = os.environ.get('FLASK_SECRET_KEY')
+    
+    if not app.secret_key:
+        raise ValueError("FATAL: FLASK_SECRET_KEY environment variable is not set.")
+
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
     app.config['SESSION_COOKIE_SECURE'] = True
     app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -72,20 +76,21 @@ def create_app():
                 db.session.execute(text('ALTER TABLE audit_log ADD COLUMN user_id INTEGER REFERENCES "user"(id)'))
                 db.session.commit()
 
-            admin_user = os.environ.get('ADMIN_USER', 'admin')
-            admin_pass = os.environ.get('ADMIN_PASS', 'password123')
+            admin_user = os.environ.get('ADMIN_USER')
+            admin_pass = os.environ.get('ADMIN_PASS')
             
-            master_admin = User.query.filter_by(username=admin_user).first()
-            if not master_admin:
-                new_admin = User(
-                    username=admin_user,
-                    password_hash=generate_password_hash(admin_pass),
-                    is_admin=True
-                )
-                db.session.add(new_admin)
-            else:
-                master_admin.is_admin = True
-            db.session.commit()
+            if admin_user and admin_pass:
+                master_admin = User.query.filter_by(username=admin_user).first()
+                if not master_admin:
+                    new_admin = User(
+                        username=admin_user,
+                        password_hash=generate_password_hash(admin_pass),
+                        is_admin=True
+                    )
+                    db.session.add(new_admin)
+                else:
+                    master_admin.is_admin = True
+                db.session.commit()
         except Exception:
             pass
 

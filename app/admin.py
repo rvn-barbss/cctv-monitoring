@@ -11,19 +11,9 @@ from app.utils import record_activity
 
 admin_bp = Blueprint('admin', __name__)
 
-# ---------------------------------------------------------------
-# NOTE ON CSRF: Install Flask-WTF and add CSRFProtect(app) in
-# __init__.py. Then add {{ form.hidden_tag() }} or
-# <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-# to every HTML form that POSTs to these routes.
-# ---------------------------------------------------------------
-
-
 def _generate_temp_password(length=16):
-    """Generate a cryptographically random temporary password."""
     alphabet = string.ascii_letters + string.digits + string.punctuation
     return ''.join(secrets.choice(alphabet) for _ in range(length))
-
 
 @admin_bp.route('/admin/manage_users', methods=['POST'])
 @login_required
@@ -74,12 +64,6 @@ def manage_users():
     elif action == 'reset':
         user = User.query.filter_by(username=target_username).first()
         if user:
-            # ---------------------------------------------------------------
-            # FIX 3: Never reset to a known hardcoded password.
-            # Generate a unique random temporary password each time.
-            # The admin MUST communicate this securely to the user — it is
-            # shown only once in a flash message (never stored in plaintext).
-            # ---------------------------------------------------------------
             temp_password = _generate_temp_password()
             user.password_hash = generate_password_hash(temp_password)
             user.totp_secret = None
@@ -87,7 +71,6 @@ def manage_users():
             user.failed_attempts = 0
             db.session.commit()
             record_activity(f"ADMIN ACTION: Reset password and 2FA for {target_username}", current_user.id)
-            # Show the temp password ONCE — admin must copy and send it securely
             flash(
                 f"Temporary password for {target_username}: {temp_password}  "
                 f"— Copy it now, it will not be shown again.",
@@ -103,7 +86,6 @@ def manage_users():
             record_activity(f"ADMIN ACTION: Deleted user {target_username}", current_user.id)
 
     return redirect(url_for('views.dashboard'))
-
 
 @admin_bp.route('/admin/export_logs')
 @login_required

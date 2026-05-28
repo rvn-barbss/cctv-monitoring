@@ -11,7 +11,8 @@ views_bp = Blueprint('views', __name__)
 def index():
     return redirect(url_for('auth.login'))
 
-@views_bp.route('/dashboard')
+# FIX: Added strict_slashes and methods to catch any browser weirdness
+@views_bp.route('/dashboard', strict_slashes=False, methods=['GET', 'POST'])
 @login_required
 def dashboard():
     if not session.get('camera_logged'):
@@ -20,12 +21,11 @@ def dashboard():
 
     all_users = User.query.all() if current_user.is_admin else []
     
-    # Restored the hardware bridge variable
     cam_url = os.environ.get('CAM_URL', '') 
     
     return render_template('camera.html', is_admin=current_user.is_admin, all_users=all_users, cam_url=cam_url)
 
-@views_bp.route('/get_logs')
+@views_bp.route('/get_logs', strict_slashes=False)
 @login_required
 def get_logs():
     if not current_user.is_admin:
