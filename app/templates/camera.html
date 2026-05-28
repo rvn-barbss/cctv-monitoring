@@ -850,7 +850,8 @@
         return true;
       });
       filtered.sort((a, b) => sortAsc ? a.timestamp - b.timestamp : b.timestamp - a.timestamp);
-      document.getElementById('log-count').textContent = ${filtered.length} record${filtered.length !== 1 ? 's' : ''};
+      document.getElementById('log-count').textContent =
+  `${filtered.length} record${filtered.length !== 1 ? 's' : ''}`;
 
       // Summary counts (based on period filter, not type filter)
       const now2 = new Date();
