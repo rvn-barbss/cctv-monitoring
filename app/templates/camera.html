@@ -756,8 +756,8 @@
       const path = STREAM_PATHS[index];
       const feedElement = document.getElementById('cam-feed');
 
-      document.getElementById('cam-ip-label').textContent = TRYING ENDPOINT ${path};
-      document.getElementById('stream-path-display').textContent = Scanning ${path}...;
+      document.getElementById('cam-ip-label').textContent = `TRYING ENDPOINT ${path}`;
+      document.getElementById('stream-path-display').textContent = `Scanning ${path}...`;
 
       const testImg = new Image();
       let timeout = setTimeout(() => { testImg.src = ''; tryPath(index + 1); }, 4000);
@@ -822,14 +822,21 @@
       const m = line.match(/\[(.*?)\]\s(.*?)\s-\s(.*?)\s\((.*?)\)/);
       if (!m) return null;
       const [date, time] = m[1].split(' ');
-      return { date, time, user: m[2], action: m[3], ip: m[4], timestamp: new Date(${date} ${time}) };
+     return {
+  date,
+  time,
+  user: m[2],
+  action: m[3],
+  ip: m[4],
+  timestamp: new Date(`${date} ${time}`)
+};
     }
 
     
     let existingKeys = new Set();
 
     function makeKey(log) {
-      return ${log.date}_${log.time}_${log.user}_${log.action}_${log.ip};
+      return `${log.date}_${log.time}_${log.user}_${log.action}_${log.ip}`;
     }
 
     function renderLogs(isNewData = false) {
