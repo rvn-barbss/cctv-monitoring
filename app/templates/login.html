@@ -3,126 +3,372 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin Login | CCTV Monitoring System</title>
-    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <title>SECURE ACCESS | AI Surveillance Command</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg-deep: #060709;
+            --panel-graphite: #0f1115;
+            --accent-crimson: #ff1e27;
+            --accent-amber: #ff9100;
+            --text-pure: #ffffff;
+            --text-muted: #6c7a89;
+            --laser-glow: rgba(255, 30, 39, 0.15);
+        }
+
         body {
-            height: 100vh; display: flex; justify-content: center; align-items: center;
-            font-family: 'Share Tech Mono', monospace; overflow: hidden;
-            background: radial-gradient(circle at top left, rgba(0,180,255,0.18), transparent 25%),
-                        radial-gradient(circle at bottom right, rgba(0,255,170,0.10), transparent 25%),
-                        #050b14;
+            height: 100vh;
+            background-color: var(--bg-deep);
+            font-family: 'Rajdhani', sans-serif;
+            overflow: hidden;
+            color: var(--text-pure);
+            display: flex;
+        }
+
+        /* --- SPLIT SCREEN LAYOUT --- */
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
             position: relative;
         }
-        body::before {
-            content: ""; position: absolute; width: 100%; height: 100%;
-            background-image: linear-gradient(rgba(0,255,255,0.05) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(0,255,255,0.05) 1px, transparent 1px);
-            background-size: 40px 40px; animation: moveGrid 12s linear infinite;
+
+        /* --- LEFT SIDE: SURVEILLANCE FEED & TAC-UI --- */
+        .surveillance-viewport {
+            flex: 1.2;
+            position: relative;
+            background: radial-gradient(circle at center, #13171e 0%, #060709 100%);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-right: 2px solid rgba(255, 30, 39, 0.2);
         }
-        @keyframes moveGrid { from { transform: translateY(0px); } to { transform: translateY(40px); } }
+
+        /* Tactical Grid Background */
+        .surveillance-viewport::before {
+            content: ""; position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+        }
+
+        /* Moving Scan Line */
+        .scan-line {
+            position: absolute; top: 0; left: 0; width: 100%; height: 4px;
+            background: linear-gradient(90deg, transparent, var(--accent-crimson), transparent);
+            box-shadow: 0 0 15px var(--accent-crimson);
+            opacity: 0.7;
+            animation: scan Vertical 6s linear infinite;
+            z-index: 3;
+        }
+
+        @keyframes scanVertical {
+            0% { top: -10px; }
+            100% { top: 105%; }
+        }
+
+        /* Radar Animation Component */
+        .radar-system {
+            position: relative; width: 500px; height: 500px;
+            border: 1px solid rgba(255, 145, 0, 0.15); border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .radar-system::before {
+            content: ''; position: absolute; width: 75%; height: 75%;
+            border: 1px dashed rgba(255, 30, 39, 0.2); border-radius: 50%;
+        }
+        .radar-system::after {
+            content: ''; position: absolute; width: 40%; height: 40%;
+            border: 1px solid rgba(255, 145, 0, 0.2); border-radius: 50%;
+        }
+        .radar-sweep {
+            position: absolute; width: 100%; height: 100%;
+            background: conic-gradient(from 0deg, transparent 50%, rgba(255, 30, 39, 0.08) 100%);
+            border-radius: 50%;
+            animation: sweep 4s linear infinite;
+        }
+
+        @keyframes sweep {
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Target Tracking Box Crosshairs */
+        .target-reticle {
+            position: absolute; width: 80px; height: 80px;
+            border: 2px solid var(--accent-amber);
+            animation: pulseGlow 2s infinite alternate;
+        }
+        .reticle-1 { top: 25%; left: 30%; width: 40px; height: 40px; border-color: var(--accent-crimson); }
+        .reticle-2 { bottom: 20%; right: 25%; width: 60px; height: 60px; }
         
-        .login-card {
-            position: relative; width: 100%; max-width: 430px; padding: 45px;
-            border-radius: 18px; background: rgba(10, 15, 25, 0.88); backdrop-filter: blur(16px);
-            border: 1px solid rgba(0,255,255,0.15);
-            box-shadow: 0 0 25px rgba(0,255,255,0.08), 0 0 60px rgba(0,140,255,0.12), 0 20px 50px rgba(0,0,0,0.6);
-            z-index: 2;
+        .target-data {
+            position: absolute; top: -22px; left: 0; font-family: 'Orbitron', sans-serif;
+            font-size: 10px; color: var(--accent-amber); white-space: nowrap; letter-spacing: 1px;
         }
-        .login-card::before {
-            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 3px;
-            background: linear-gradient(90deg, #00e5ff, #0078ff, #00ffcc); border-radius: 18px 18px 0 0;
+
+        @keyframes pulseGlow {
+            0% { opacity: 0.3; transform: scale(0.95); }
+            100% { opacity: 0.9; transform: scale(1.05); }
         }
-        h2 { text-align: center; color: #ffffff; font-size: 34px; letter-spacing: 2px; margin-bottom: 10px; text-shadow: 0 0 10px rgba(0,255,255,0.4); }
-        .subtitle { text-align: center; color: #8ca0b3; font-size: 13px; margin-bottom: 30px; letter-spacing: 1px; }
-        .input-group { margin-bottom: 18px; position: relative; }
-        .input-group label { display: block; margin-bottom: 8px; color: #b9c6d3; font-size: 13px; letter-spacing: 1px; }
+
+        /* Environmental Overlay Data */
+        .hud-overlay {
+            position: absolute; inset: 30px;
+            display: flex; flex-direction: column; justify-content: space-between;
+            pointer-events: none; font-family: 'Orbitron', sans-serif;
+        }
+        .hud-header, .hud-footer { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); letter-spacing: 2px; }
+        .hud-header span { color: var(--accent-crimson); }
+        .live-dot { inline-size: 8px; block-size: 8px; background-color: var(--accent-crimson); border-radius: 50%; display: inline-block; margin-right: 5px; animation: blink 1s infinite; }
+        
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* --- RIGHT SIDE: AUTHENTICATION PANEL --- */
+        .auth-panel {
+            flex: 0.8;
+            background: linear-gradient(135deg, #0b0d11 0%, #060709 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 60px;
+            position: relative;
+            z-index: 5;
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 440px;
+            margin: 0 auto;
+        }
+
+        .security-badge {
+            display: flex; align-items: center; gap: 10px;
+            color: var(--accent-crimson); font-family: 'Orbitron', sans-serif;
+            font-size: 13px; font-weight: 700; letter-spacing: 3px; margin-bottom: 15px;
+        }
+        .badge-icon {
+            width: 12px; height: 12px; background: var(--accent-crimson);
+            transform: rotate(45deg); box-shadow: 0 0 8px var(--accent-crimson);
+        }
+
+        h2 {
+            font-family: 'Orbitron', sans-serif; font-size: 42px; font-weight: 900;
+            letter-spacing: 2px; line-height: 1.1; margin-bottom: 8px; color: var(--text-pure);
+        }
+        .subtitle {
+            color: var(--text-muted); font-size: 14px; text-transform: uppercase;
+            letter-spacing: 3px; margin-bottom: 40px; border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 15px;
+        }
+
+        /* Form Controls */
+        .input-group { margin-bottom: 25px; position: relative; }
+        .input-group label {
+            display: block; margin-bottom: 10px; color: var(--text-pure);
+            font-size: 12px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
+        }
+        .input-wrapper { position: relative; }
+        
         .input-field {
-            width: 100%; padding: 14px 16px; border-radius: 10px; border: 1px solid rgba(0,255,255,0.1);
-            background: rgba(255,255,255,0.03); color: #ffffff; outline: none; transition: all 0.3s ease;
-            font-size: 14px; font-family: 'Share Tech Mono', monospace;
+            width: 100%; padding: 16px 20px; background: rgba(20, 24, 33, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08); border-left: 3px solid var(--text-muted);
+            color: var(--text-pure); font-family: 'Rajdhani', sans-serif; font-size: 16px;
+            letter-spacing: 1px; transition: all 0.3s ease; outline: none;
         }
-        .input-field:focus { border-color: #00d9ff; box-shadow: 0 0 0 3px rgba(0,217,255,0.12), 0 0 15px rgba(0,217,255,0.18); background: rgba(255,255,255,0.05); }
-        
+        .input-field:focus {
+            border-color: rgba(255, 30, 39, 0.3); border-left-color: var(--accent-crimson);
+            background: rgba(255, 30, 39, 0.02); box-shadow: 0 0 20px rgba(255, 30, 39, 0.05);
+        }
+
+        /* Biometric Icon Indicator Inside Input */
+        .input-icon {
+            position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+            color: rgba(255,255,255,0.2); pointer-events: none;
+        }
+
+        /* Eye Action Button */
         .eye-btn {
-            position: absolute; right: 15px; top: 38px; background: none; border: none;
-            color: #607080; cursor: pointer; transition: 0.3s;
+            position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; color: var(--text-muted); cursor: pointer; transition: 0.3s;
         }
-        .eye-btn:hover { color: #00d9ff; }
+        .eye-btn:hover { color: var(--accent-amber); }
 
+        /* Tactical Button */
         .login-btn {
-            width: 100%; padding: 14px; margin-top: 10px; border: none; border-radius: 10px;
-            background: linear-gradient(135deg, #0078ff, #00b7ff); color: white; font-size: 15px;
-            font-family: 'Share Tech Mono', monospace; letter-spacing: 1px; cursor: pointer; transition: all 0.3s ease;
+            width: 100%; padding: 16px; margin-top: 15px; background: transparent;
+            border: 1px solid var(--accent-crimson); color: var(--text-pure);
+            font-family: 'Orbitron', sans-serif; font-size: 15px; font-weight: 700;
+            letter-spacing: 3px; cursor: pointer; position: relative; overflow: hidden;
+            transition: all 0.4s ease; box-shadow: inset 0 0 0 0 var(--accent-crimson);
         }
-        .login-btn:hover { transform: translateY(-2px); box-shadow: 0 0 20px rgba(0,183,255,0.35), 0 10px 30px rgba(0,120,255,0.3); }
-        
+        .login-btn:hover {
+            box-shadow: inset 0 -100px 0 0 var(--accent-crimson);
+            text-shadow: 0 0 5px #fff;
+            box-shadow: 0 0 25px rgba(255, 30, 39, 0.4), inset 0 -100px 0 0 var(--accent-crimson);
+        }
+
         .forgot-link {
-            display: block; text-align: center; margin-top: 20px; font-size: 12px; color: #00d9ff;
-            text-decoration: none; cursor: pointer; letter-spacing: 1px; transition: 0.3s;
+            display: inline-block; margin-top: 25px; font-size: 12px; color: var(--text-muted);
+            text-decoration: none; cursor: pointer; letter-spacing: 2px; font-weight: 600;
+            transition: 0.3s; text-transform: uppercase;
         }
-        .forgot-link:hover { text-shadow: 0 0 8px rgba(0,217,255,0.6); }
+        .forgot-link:hover { color: var(--accent-amber); }
 
-        .error { background: rgba(255, 76, 76, 0.12); color: #ff7b7b; border: 1px solid rgba(255, 76, 76, 0.25); padding: 12px; border-radius: 10px; text-align: center; margin-bottom: 18px; font-size: 13px; }
-        .success { background: rgba(0, 230, 118, 0.12); color: #00e676; border: 1px solid rgba(0, 230, 118, 0.25); padding: 12px; border-radius: 10px; text-align: center; margin-bottom: 18px; font-size: 13px; }
+        /* Message Flashing Alert Plates */
+        .error, .success {
+            padding: 15px; border-radius: 0; margin-bottom: 25px; font-size: 14px;
+            font-weight: 600; letter-spacing: 1px; display: flex; align-items: center;
+            font-family: 'Rajdhani', sans-serif;
+        }
+        .error { background: rgba(255, 30, 39, 0.1); color: #ff5252; border: 1px solid rgba(255, 30, 39, 0.3); border-left: 4px solid var(--accent-crimson); }
+        .success { background: rgba(0, 230, 118, 0.08); color: #00e676; border: 1px solid rgba(0, 230, 118, 0.2); border-left: 4px solid #00e676; }
 
-        /* Modal Styles */
+        /* --- IMMERSIVE TACTICAL MODAL --- */
         .modal {
-            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8);
-            justify-content: center; align-items: center; z-index: 10; backdrop-filter: blur(5px);
+            display: none; position: fixed; inset: 0; background: rgba(5, 6, 8, 0.95);
+            justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(8px);
         }
         .modal-content {
-            background: rgba(10, 15, 25, 0.95); padding: 30px; border-radius: 15px;
-            border: 1px solid #00d9ff; width: 90%; max-width: 400px;
+            background: var(--panel-graphite); padding: 45px; width: 90%; max-width: 460px;
+            border: 1px solid rgba(255, 145, 0, 0.3); position: relative;
         }
-        .modal-title { color: #fff; font-size: 18px; margin-bottom: 15px; letter-spacing: 1px; }
-        .close-btn { display: inline-block; margin-top: 15px; background: none; border: 1px solid #607080; color: #8ca0b3; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+        .modal-content::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: var(--accent-amber);
+        }
+        .modal-title { font-family: 'Orbitron', sans-serif; color: var(--text-pure); font-size: 20px; margin-bottom: 15px; letter-spacing: 2px; font-weight: 700; }
+        
+        .modal-actions {
+            display: flex; gap: 15px; margin-top: 20px;
+        }
+        .close-btn {
+            background: transparent; border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted);
+            padding: 14px 20px; font-family: 'Orbitron', sans-serif; font-size: 12px; letter-spacing: 2px; cursor: pointer; transition: 0.3s;
+        }
+        .close-btn:hover { background: rgba(255,255,255,0.05); color: #fff; }
+
+        /* System Status Indicators Footbar */
+        .system-status {
+            position: absolute; bottom: 30px; left: 60px; right: 60px;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 11px; letter-spacing: 2px; color: var(--text-muted);
+            border-top: 1px solid rgba(255,255,255,0.03); padding-top: 20px;
+        }
+        .status-node { color: #00e676; font-weight: 700; }
+
+        /* Responsive Optimization */
+        @media (max-width: 1024px) {
+            .surveillance-viewport { display: none; }
+            .auth-panel { flex: 1; padding: 40px; }
+            .system-status { left: 40px; right: 40px; }
+        }
     </style>
 </head>
 <body>
 
-    <div class="login-card">
-        <h2>CCTV SYSTEM</h2>
-        <p class="subtitle">ADVANCED MONITORING INTERFACE</p>
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% for category, message in messages %}
-              <div class="{% if category == 'success' %}success{% else %}error{% endif %}">{{ message }}</div>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
-
-        <form method="post" action="/login">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <div class="input-group">
-                <label>ADMIN USERNAME</label>
-                <input type="text" name="username" class="input-field" placeholder="Enter Username" required>
+    <div class="container">
+        
+        <div class="surveillance-viewport">
+            <div class="scan-line"></div>
+            
+            <div class="hud-overlay">
+                <div class="hud-header">
+                    <div><span class="live-dot"></span>SYS.FEED // LIVE_STREAM</div>
+                    <div>CAM_INDEX_09: ACTIVE</div>
+                </div>
+                <div class="hud-footer">
+                    <div>COORD: 34.0522° N, 118.2437° W</div>
+                    <div>AI THREAT DECT: OPTIMAL</div>
+                </div>
             </div>
 
-            <div class="input-group">
-                <label>SECURITY PASSWORD</label>
-                <input type="password" name="password" id="passInput" class="input-field" placeholder="Enter Password" required>
-                <button type="button" class="eye-btn" onclick="togglePassword()">
-                    <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                </button>
+            <div class="radar-system">
+                <div class="radar-sweep"></div>
+                
+                <div class="target-reticle reticle-1">
+                    <div class="target-data">TRK: NODE_0843 [LOCK]</div>
+                </div>
+                <div class="target-reticle reticle-2">
+                    <div class="target-data">TRK: DRONE_ALPHA [SCAN]</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="auth-panel">
+            <div class="auth-container">
+                
+                <div class="security-badge">
+                    <div class="badge-icon"></div>
+                    AUTHORIZED PERSONNEL ONLY
+                </div>
+                
+                <h2>CORE SYSTEM</h2>
+                <p class="subtitle">Neural Surveillance Interface</p>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    {% for category, message in messages %}
+                      <div class="{% if category == 'success' %}success{% else %}error{% endif %}">
+                         <span>⚡ {{ message }}</span>
+                      </div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+
+                <form method="post" action="/login">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    
+                    <div class="input-group">
+                        <label>OPERATOR IDENTITY</label>
+                        <div class="input-wrapper">
+                            <input type="text" name="username" class="input-field" placeholder="Enter Clearance ID" required autocomplete="off">
+                            <div class="input-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label>CRYPTOGRAPHIC PASSPHRASE</label>
+                        <div class="input-wrapper">
+                            <input type="password" name="password" id="passInput" class="input-field" placeholder="••••••••••••" required>
+                            <button type="button" class="eye-btn" onclick="togglePassword()">
+                                <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="login-btn">INITIALIZE AUTHENTICATION</button>
+                </form>
+
+                <a class="forgot-link" onclick="openModal()">// Bypassed Credentials Reset</a>
             </div>
 
-            <button type="submit" class="login-btn">LOGIN</button>
-        </form>
+            <div class="system-status">
+                <div>NETWORK: <span class="status-node">SECURE</span></div>
+                <div>ENCRYPTION: AES_256</div>
+                <div>v4.82-SURV</div>
+            </div>
+        </div>
 
-        <a class="forgot-link" onclick="openModal()">FORGOT PASSWORD?</a>
     </div>
 
     <div class="modal" id="forgotModal">
         <div class="modal-content">
-            <div class="modal-title">REQUEST PASSWORD RESET</div>
-            <p style="color:#8ca0b3; font-size:12px; margin-bottom: 20px;">Submit your username to securely request a master admin reset.</p>
+            <div class="modal-title">CREDENTIAL RECOVERY PROTOCOL</div>
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px; line-height: 1.5;">Input your registered network identifier below. A master clearance authentication reset handshake will be signaled.</p>
+            
             <form method="post" action="/forgot_password">
-                <input type="text" name="username" class="input-field" placeholder="Enter your username" required style="margin-bottom: 15px;">
-                <button type="submit" class="login-btn">SEND REQUEST</button>
-                <button type="button" class="close-btn" onclick="closeModal()">CANCEL</button>
+                <div class="input-group">
+                    <input type="text" name="username" class="input-field" placeholder="Enter Operator ID" required style="border-left-color: var(--accent-amber);">
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="login-btn" style="border-color: var(--accent-amber); margin: 0;">DISPATCH SIGNAL</button>
+                    <button type="button" class="close-btn" onclick="closeModal()">ABORT</button>
+                </div>
             </form>
         </div>
     </div>
@@ -130,16 +376,23 @@
     <script>
         function togglePassword() {
             const passInput = document.getElementById('passInput');
+            const eyeIcon = document.getElementById('eyeIcon');
             if (passInput.type === 'password') {
                 passInput.type = 'text';
+                eyeIcon.style.color = 'var(--accent-crimson)';
             } else {
                 passInput.type = 'password';
+                eyeIcon.style.color = 'var(--text-muted)';
             }
         }
 
         function openModal() {
             document.getElementById('forgotModal').style.display = 'flex';
         }
+
+        document.getElementById('forgotModal').addEventListener('click', function(e) {
+            if(e.target === this) closeModal();
+        });
 
         function closeModal() {
             document.getElementById('forgotModal').style.display = 'none';
