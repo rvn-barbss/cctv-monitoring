@@ -589,6 +589,7 @@
               
               <div style="display:flex; gap:8px;">
                 <form action="/admin/manage_users" method="POST" style="display:inline;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                   <input type="hidden" name="action" value="reset">
                   <input type="hidden" name="target_username" value="{{ u.username }}">
                   <button type="submit" class="admin-btn warn" style="padding: 5px 10px; width:auto;" onclick="return confirm('Reset password for {{ u.username }} to default123? This also resets their 2FA.')">RESET PASS</button>
@@ -598,6 +599,7 @@
 
                 {% if u.is_locked %}
                 <form action="/admin/manage_users" method="POST" style="display:inline;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                   <input type="hidden" name="action" value="unlock">
                   <input type="hidden" name="target_username" value="{{ u.username }}">
                   <button type="submit" class="admin-btn" style="padding: 5px 10px; width:auto;">UNLOCK</button>
@@ -606,6 +608,7 @@
                 
                 {% if not u.is_admin %}
                 <form action="/admin/manage_users" method="POST" style="display:inline;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                   <input type="hidden" name="action" value="delete">
                   <input type="hidden" name="target_username" value="{{ u.username }}">
                   <button type="submit" class="admin-btn danger" style="padding: 5px 10px; width:auto;" onclick="return confirm('Delete user {{ u.username }}?')">DELETE</button>

@@ -51,7 +51,8 @@
           {% endif %}
         {% endwith %}
         
-        <form method="post">
+        <form method="POST" action="...">
+#           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="text" name="token" class="input-field" placeholder="000000" maxlength="6" required autocomplete="off">
             <button type="submit" class="login-btn">VERIFY IDENTITY</button>
         </form>

@@ -11,18 +11,30 @@ from app.utils import record_activity
 
 auth_bp = Blueprint('auth', __name__)
 
+# ---------------------------------------------------------------
+# FIX 5: TOTP brute-force limit — max attempts before lockout.
+# Stored in server-side session (not cookie-side) so it can't
+# be reset by the client.
+# ---------------------------------------------------------------
+TOTP_MAX_ATTEMPTS = 5
+
+
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+
         user = User.query.filter_by(username=username).first()
+
         if user and user.is_locked:
             record_activity("INTRUSION ALERT: Locked account access attempt", user.id)
             flash('Account locked due to multiple failed attempts', 'error')
             return render_template('login.html')
+
         if user and check_password_hash(user.password_hash, password):
             session['pre_2fa_user_id'] = user.id
+            session['totp_attempts'] = 0   # FIX 5: reset attempt counter on new login
             return redirect(url_for('auth.verify_2fa'))
         else:
             if user:
@@ -31,9 +43,12 @@ def login():
                 if user.failed_attempts >= 5:
                     user.is_locked = True
                 db.session.commit()
+            # FIX: same message whether user exists or not (prevents username enumeration)
             flash('Invalid credentials', 'error')
-            
+            return render_template('login.html')
+
     return render_template('login.html')
+
 
 @auth_bp.route('/forgot_password', methods=['POST'])
 def forgot_password():
@@ -41,37 +56,63 @@ def forgot_password():
     user = User.query.filter_by(username=username).first()
     if user:
         record_activity("PASSWORD RESET REQUESTED", user.id)
+    # FIX: same message whether user exists or not (prevents username enumeration)
     flash('If that account exists, a reset request has been sent to the Master Admin.', 'success')
     return redirect(url_for('auth.login'))
+
 
 @auth_bp.route('/verify_2fa', methods=['GET', 'POST'])
 def verify_2fa():
     if 'pre_2fa_user_id' not in session:
         return redirect(url_for('auth.login'))
-        
+
     user = User.query.get(session['pre_2fa_user_id'])
+
+    # ---------------------------------------------------------------
+    # FIX 5: Lock out after too many TOTP failures
+    # ---------------------------------------------------------------
+    totp_attempts = session.get('totp_attempts', 0)
+    if totp_attempts >= TOTP_MAX_ATTEMPTS:
+        session.pop('pre_2fa_user_id', None)
+        session.pop('totp_attempts', None)
+        if user:
+            user.is_locked = True
+            db.session.commit()
+            record_activity("INTRUSION ALERT: TOTP brute-force lockout triggered", user.id)
+        flash('Too many failed 2FA attempts. Account locked.', 'error')
+        return redirect(url_for('auth.login'))
+
     is_first_time = False
-    
     if not user.totp_secret:
         user.totp_secret = pyotp.random_base32()
         db.session.commit()
         is_first_time = True
-        
+
     totp = pyotp.TOTP(user.totp_secret)
-    
+
     if request.method == 'POST':
         token = request.form.get('token')
         if totp.verify(token):
             user.failed_attempts = 0
             db.session.commit()
+
+            # ---------------------------------------------------------------
+            # FIX 8: Regenerate session ID after successful login to prevent
+            # session fixation attacks.
+            # ---------------------------------------------------------------
+            pre_2fa_id = session.pop('pre_2fa_user_id', None)
+            session.clear()
+            session['_fresh'] = True
+
             login_user(user)
             session.permanent = True
-            session.pop('pre_2fa_user_id', None)
             record_activity("LOGIN SUCCESS", user.id)
             return redirect(url_for('views.dashboard'))
         else:
-            flash('Invalid Authenticator Code', 'error')
-            
+            session['totp_attempts'] = totp_attempts + 1
+            remaining = TOTP_MAX_ATTEMPTS - session['totp_attempts']
+            flash(f'Invalid Authenticator Code. {remaining} attempt(s) remaining.', 'error')
+
     qr_b64 = None
     if is_first_time:
         provisioning_uri = totp.provisioning_uri(name=user.username, issuer_name="CCTV System")
@@ -79,8 +120,9 @@ def verify_2fa():
         buf = io.BytesIO()
         qr.save(buf, format="PNG")
         qr_b64 = b64encode(buf.getvalue()).decode('utf-8')
-    
+
     return render_template('2fa.html', qr_b64=qr_b64, is_first_time=is_first_time)
+
 
 @auth_bp.route('/logout')
 def logout():
