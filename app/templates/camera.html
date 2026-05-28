@@ -354,6 +354,7 @@
     td.alert   { color: var(--accent-amber); font-weight: bold; }
     td.user-col { color: var(--accent-blue); }
 
+    /* ✅ FIX: Animation only plays on NEW rows, not on re-renders */
     @keyframes row-in { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
     .log-table tbody tr.new-row { animation: row-in 0.3s ease both; }
 
@@ -432,10 +433,9 @@
 
     <div class="tab-bar">
       <button class="tab-link active" onclick="openTab(event,'Camera')">CAMERA FEED</button>
-
-      {# ✅ FIX 1: Logs tab button — admin lang ang makakakita #}
-      {% if is_admin %}
       <button class="tab-link" onclick="openTab(event,'Logs')">LOGS</button>
+      
+      {% if is_admin %}
       <button class="tab-link" onclick="openTab(event,'Admin')">ADMIN SETTINGS</button>
       {% endif %}
     </div>
@@ -497,8 +497,6 @@
       </div>
     </div>
 
-    {# ✅ FIX 2: Entire Logs tab — naka-wrap sa is_admin, hindi mire-render sa HTML ng non-admin #}
-    {% if is_admin %}
     <div id="Logs" class="tab-content card">
       <div class="logs-title">USER ACTIVITY &amp; ACCESS HISTORY</div>
       <div id="log-summary" style="display:flex; gap:24px; margin-bottom:18px; flex-wrap:wrap;">
@@ -541,7 +539,8 @@
         </table>
       </div>
     </div>
-
+    
+    {% if is_admin %}
     <div id="Admin" class="tab-content card">
       
       <a href="/admin/export_logs" class="admin-btn dl" style="text-decoration:none; display:inline-block; width:auto;">⬇ DOWNLOAD SECURE AUDIT LOGS (CSV)</a>
@@ -623,7 +622,7 @@
         
       </div>
     </div>
-    {% endif %}{# end is_admin block #}
+    {% endif %}
 
   </div>
 
@@ -704,9 +703,7 @@
 
     window.addEventListener('load', () => { showConnecting(); tryPath(0); });
 
-    {# ✅ FIX 3: Lahat ng logs JS — naka-wrap sa is_admin.
-       Hindi mire-render ang fetch('/get_logs') calls sa browser ng non-admin. #}
-    {% if is_admin %}
+   
     let allLogs = [], activeDays = 7, activeType = 'all', sortAsc = false;
     let lastRawData = null;
 
@@ -748,6 +745,7 @@
       return { date, time, user: m[2], action: m[3], ip: m[4], timestamp: new Date(`${date} ${time}`) };
     }
 
+    
     let existingKeys = new Set();
 
     function makeKey(log) {
@@ -767,6 +765,7 @@
       filtered.sort((a, b) => sortAsc ? a.timestamp - b.timestamp : b.timestamp - a.timestamp);
       document.getElementById('log-count').textContent = `${filtered.length} record${filtered.length !== 1 ? 's' : ''}`;
 
+      // Summary counts (based on period filter, not type filter)
       const now2 = new Date();
       const baseLogs = activeDays > 0 ? allLogs.filter(l => (now2 - l.timestamp) / 86400000 <= activeDays) : allLogs;
       document.getElementById('sum-total').textContent  = baseLogs.length;
@@ -797,6 +796,7 @@
 
       document.getElementById('log-body').innerHTML = html || '<tr><td colspan="5" style="color:var(--text-dim)">No logs found.</td></tr>';
 
+    
       if (isNewData) {
         existingKeys = new Set(allLogs.map(makeKey));
       }
@@ -804,6 +804,7 @@
 
     function updateLogs() {
       fetch('/get_logs').then(r => r.text()).then(data => {
+        
         if (data === lastRawData) return;
         lastRawData = data;
         allLogs = data.trim().split('\n').map(parseLine).filter(Boolean);
@@ -811,12 +812,28 @@
       });
     }
 
-    
     setInterval(() => {
       if (document.getElementById('Logs').style.display === 'block') updateLogs();
     }, 3000);
 
-   
+    function openEditModal(username) {
+      document.getElementById('modal-target').value = username;
+      document.getElementById('modal-current').textContent = username;
+      document.getElementById('modal-new').value = '';
+      const modal = document.getElementById('edit-modal');
+      modal.style.display = 'flex';
+    }
+
+    function closeEditModal() {
+      document.getElementById('edit-modal').style.display = 'none';
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('edit-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeEditModal();
+    });
+
+
     let lastResetCount = parseInt(sessionStorage.getItem('resetCount') || '-1');
 
     function showResetToast(username, time) {
@@ -850,6 +867,7 @@
         const currentCount = resets.length;
 
         if (lastResetCount === -1) {
+          // First load — set baseline, walang toast
           lastResetCount = currentCount;
           sessionStorage.setItem('resetCount', currentCount);
           return;
@@ -869,36 +887,9 @@
 
     setInterval(checkResetRequests, 3000);
     checkResetRequests();
-
-    {% else %}
-    function openTab(evt, tabName) {
-      document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
-      document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
-      document.getElementById(tabName).style.display = 'block';
-      evt.currentTarget.classList.add('active');
-    }
-    {% endif %}
-
-    function openEditModal(username) {
-      document.getElementById('modal-target').value = username;
-      document.getElementById('modal-current').textContent = username;
-      document.getElementById('modal-new').value = '';
-      const modal = document.getElementById('edit-modal');
-      modal.style.display = 'flex';
-    }
-
-    function closeEditModal() {
-      document.getElementById('edit-modal').style.display = 'none';
-    }
-
-    {% if is_admin %}
-    document.getElementById('edit-modal').addEventListener('click', function(e) {
-      if (e.target === this) closeEditModal();
-    });
-    {% endif %}
   </script>
 
-  <!-- Toast Container — admin lang ang gagamitin nito -->
+  <!-- Toast Container -->
   <div id="toast-container" style="position:fixed; top:24px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:10px; max-width:360px; width:100%;"></div>
 
   <style>
@@ -940,8 +931,7 @@
     @keyframes shrink { from { width:100%; } to { width:0%; } }
   </style>
 
-
-  {% if is_admin %}
+  <!-- Edit Username Modal -->
   <div id="edit-modal" style="display:none; position:fixed; inset:0; z-index:999; background:rgba(0,0,0,0.7); justify-content:center; align-items:center;">
     <div style="background:var(--bg-card); border:1px solid var(--border-glow); border-radius:8px; padding:32px; width:380px; position:relative;">
       <div style="font-family:'Orbitron',monospace; font-size:13px; letter-spacing:2px; color:var(--accent-cyan); margin-bottom:20px;">EDIT USERNAME</div>
@@ -964,7 +954,6 @@
       </form>
     </div>
   </div>
-  {% endif %}
 
 </body>
 </html>
