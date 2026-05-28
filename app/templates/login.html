@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SECURE ACCESS | AI Surveillance Command</title>
+    <title>SECURIX ACCESS | AI Surveillance Command</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -62,7 +62,7 @@
             background: linear-gradient(90deg, transparent, var(--accent-crimson), transparent);
             box-shadow: 0 0 15px var(--accent-crimson);
             opacity: 0.7;
-            animation: scan Vertical 6s linear infinite;
+            animation: scanVertical 6s linear infinite;
             z-index: 3;
         }
 
@@ -123,7 +123,7 @@
         }
         .hud-header, .hud-footer { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); letter-spacing: 2px; }
         .hud-header span { color: var(--accent-crimson); }
-        .live-dot { inline-size: 8px; block-size: 8px; background-color: var(--accent-crimson); border-radius: 50%; display: inline-block; margin-right: 5px; animation: blink 1s infinite; }
+        .live-dot { width: 8px; height: 8px; background-color: var(--accent-crimson); border-radius: 50%; display: inline-block; margin-right: 5px; animation: blink 1s infinite; }
         
         @keyframes blink { 50% { opacity: 0; } }
 
@@ -305,8 +305,8 @@
                     AUTHORIZED PERSONNEL ONLY
                 </div>
                 
-                <h2>CORE SYSTEM</h2>
-                <p class="subtitle">Neural Surveillance Interface</p>
+                <h2>SECURIX</h2>
+                <p class="subtitle">Watching Beyond Vision</p>
 
                 {% with messages = get_flashed_messages(with_categories=true) %}
                   {% if messages %}
@@ -332,7 +332,7 @@
                     </div>
 
                     <div class="input-group">
-                        <label>CRYPTOGRAPHIC PASSPHRASE</label>
+                        <label>PASSWORD</label>
                         <div class="input-wrapper">
                             <input type="password" name="password" id="passInput" class="input-field" placeholder="••••••••••••" required>
                             <button type="button" class="eye-btn" onclick="togglePassword()">
@@ -344,7 +344,7 @@
                     <button type="submit" class="login-btn">INITIALIZE AUTHENTICATION</button>
                 </form>
 
-                <a class="forgot-link" onclick="openModal()">// Bypassed Credentials Reset</a>
+                <a class="forgot-link" onclick="openModal()">// Forgot Password</a>
             </div>
 
             <div class="system-status">
