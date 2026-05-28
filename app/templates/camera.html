@@ -410,6 +410,49 @@
     .badge.locked { background: rgba(204,17,51,0.2); color: var(--accent-red); border: 1px solid var(--accent-red); }
     .badge.ok { background: rgba(0,230,118,0.1); color: var(--accent-green); border: 1px solid var(--accent-green); }
     .badge.admin-tag { background: rgba(0,229,255,0.1); color: var(--accent-cyan); border: 1px solid var(--accent-cyan); }
+    
+    .strength-wrapper {
+  margin-top: 12px;
+}
+
+.strength-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border-dim);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+#strength-fill {
+  height: 100%;
+  width: 0%;
+  transition: all 0.25s ease;
+  border-radius: 999px;
+}
+
+.strength-text {
+  margin-top: 8px;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+}
+
+.pass-rules {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.pass-rules .valid {
+  color: var(--accent-green);
+}
+
+.pass-rules .invalid {
+  color: #ff4466;
+}
 
   </style>
 </head>
@@ -566,9 +609,45 @@
               <input type="text" name="target_username" class="admin-input" required>
             </div>
             <div class="admin-input-group">
-              <label>PASSWORD</label>
-              <input type="password" name="password" class="admin-input" required>
-            </div>
+  <label>PASSWORD</label>
+
+  <input
+    type="password"
+    name="password"
+    id="password-input"
+    class="admin-input"
+    required
+    autocomplete="new-password"
+  >
+
+  <div class="strength-wrapper">
+    <div class="strength-bar">
+      <div id="strength-fill"></div>
+    </div>
+
+    <div id="strength-text" class="strength-text">
+      PASSWORD STRENGTH
+    </div>
+  </div>
+
+  <div class="pass-rules">
+    <div id="rule-length" class="invalid">
+      ✖ At least 8 characters
+    </div>
+
+    <div id="rule-upper" class="invalid">
+      ✖ Uppercase letter
+    </div>
+
+    <div id="rule-number" class="invalid">
+      ✖ Number
+    </div>
+
+    <div id="rule-special" class="invalid">
+      ✖ Special character
+    </div>
+  </div>
+</div>
             <button type="submit" class="admin-btn">CREATE USER</button>
           </form>
         </div>
@@ -889,6 +968,82 @@
     setInterval(checkResetRequests, 3000);
     checkResetRequests();
   </script>
+  
+  <script>
+
+const passwordInput = document.getElementById('password-input');
+
+if (passwordInput) {
+
+  passwordInput.addEventListener('input', function () {
+
+    const value = this.value;
+
+    const rules = {
+      length: value.length >= 8,
+      upper: /[A-Z]/.test(value),
+      number: /[0-9]/.test(value),
+      special: /[^A-Za-z0-9]/.test(value)
+    };
+
+    document.getElementById('rule-length').className =
+      rules.length ? 'valid' : 'invalid';
+
+    document.getElementById('rule-upper').className =
+      rules.upper ? 'valid' : 'invalid';
+
+    document.getElementById('rule-number').className =
+      rules.number ? 'valid' : 'invalid';
+
+    document.getElementById('rule-special').className =
+      rules.special ? 'valid' : 'invalid';
+
+    let score = 0;
+
+    Object.values(rules).forEach(v => {
+      if (v) score++;
+    });
+
+    let width = '0%';
+    let color = '#ff4466';
+    let label = 'WEAK';
+
+    if (score === 1) {
+      width = '25%';
+      color = '#ff4466';
+      label = 'WEAK';
+    }
+
+    if (score === 2) {
+      width = '50%';
+      color = '#ffb300';
+      label = 'MEDIUM';
+    }
+
+    if (score === 3) {
+      width = '75%';
+      color = '#00e5ff';
+      label = 'STRONG';
+    }
+
+    if (score === 4) {
+      width = '100%';
+      color = '#00e676';
+      label = 'VERY STRONG';
+    }
+
+    document.getElementById('strength-fill').style.width = width;
+    document.getElementById('strength-fill').style.background = color;
+    document.getElementById('strength-fill').style.boxShadow = `0 0 14px ${color}`;
+
+    document.getElementById('strength-text').textContent = label;
+    document.getElementById('strength-text').style.color = color;
+
+  });
+
+}
+
+</script>
 
   <div id="toast-container" style="position:fixed; top:24px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:10px; max-width:360px; width:100%;"></div>
 
