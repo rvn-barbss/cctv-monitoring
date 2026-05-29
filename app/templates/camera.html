@@ -316,7 +316,6 @@
         .section-divider { height: 1px; background: rgba(255,255,255,0.05); margin: 25px 0; }
         .sub-label { font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--accent-amber); margin-bottom: 15px; text-transform: uppercase; }
 
-        /* --- ID BADGE GRID REDESIGN --- */
         .user-grid { 
             display: grid; 
             grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
@@ -652,13 +651,6 @@
     </div>
 
     <script>
-        const CAM_BASE = 'https://washer-image-marker-proprietary.trycloudflare.com';
-        const STREAM_PATHS = [
-            '/video', '/mjpeg/1', '/mjpg/video.mjpg', '/videostream.cgi',
-            '/cgi-bin/mjpg/video.cgi', '/Streaming/Channels/1', '/stream',
-            '/live', '/cam/realmonitor', '/shot.jpg'
-        ];
-
         function showConnecting() {
             document.getElementById('connecting-overlay').style.display = 'flex';
             document.getElementById('error-overlay').style.display = 'none';
@@ -692,41 +684,36 @@
             document.getElementById('conn-status').textContent = '● OFFLINE';
             document.getElementById('conn-status').style.color = 'var(--accent-crimson)';
             document.getElementById('feed-label').textContent = 'NODE · STREAM UNAVAILABLE';
-            document.getElementById('stream-path-display').textContent = 'No path responded';
+            document.getElementById('stream-path-display').textContent = 'Stream disconnected';
             document.getElementById('stream-path-display').style.color = 'var(--accent-crimson)';
         }
 
-        function tryPath(index) {
-            if (index >= STREAM_PATHS.length) { showError(); return; }
-            const path = STREAM_PATHS[index];
+        function loadLocalFeed() {
+            document.getElementById('cam-ip-label').textContent = "CONNECTING TO LOCAL RTSP STREAM";
+            document.getElementById('stream-path-display').textContent = "/video_feed";
+            
             const feedElement = document.getElementById('cam-feed');
-
-            document.getElementById('cam-ip-label').textContent = `TRYING ENDPOINT ${path}`;
-            document.getElementById('stream-path-display').textContent = `Scanning ${path}...`;
-
-            const testImg = new Image();
-            let timeout = setTimeout(() => { testImg.src = ''; tryPath(index + 1); }, 4000);
-
-            testImg.onload = () => {
-                clearTimeout(timeout);
-                feedElement.src = CAM_BASE + path;
-                showLive(path);
+            
+            feedElement.src = '/video_feed';
+            
+            feedElement.onload = () => {
+                showLive('/video_feed');
             };
 
-            testImg.onerror = () => {
-                clearTimeout(timeout);
-                tryPath(index + 1);
+            feedElement.onerror = () => {
+                showError();
             };
-
-            testImg.src = CAM_BASE + path;
         }
 
         function retryFeed() {
             showConnecting();
-            setTimeout(() => tryPath(0), 500);
+            setTimeout(loadLocalFeed, 1000);
         }
 
-        window.addEventListener('load', () => { showConnecting(); tryPath(0); });
+        window.addEventListener('load', () => { 
+            showConnecting(); 
+            loadLocalFeed(); 
+        });
 
         let allLogs = [], activeDays = 7, activeType = 'all', sortAsc = false, searchQuery = '';
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
