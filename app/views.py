@@ -1,4 +1,5 @@
 import os
+import cv2
 from datetime import datetime, timedelta
 from flask import Blueprint, render_template, redirect, url_for, session, abort, Response
 from flask_login import login_required, current_user
@@ -49,7 +50,6 @@ def get_logs():
     if not current_user.is_admin:
         abort(403)
 
-    # FIX: Removed .limit(50) so "All Time" fetches the entire database history
     logs = AuditLog.query.order_by(AuditLog.id.desc()).all()
     
     lines = []
@@ -66,3 +66,35 @@ def get_logs():
 
     output = "\n".join(lines) if lines else "No activity recorded yet."
     return Response(output, mimetype='text/plain')
+
+def generate_frames():
+    # Securely retrieve the RTSP URL from the hidden .env file
+    rtsp_url = os.environ.get('CCTV_RTSP_URL')
+    
+    if not rtsp_url:
+        print("ERROR: CCTV_RTSP_URL not set in environment variables.")
+        return
+
+    # Initialize connection to the Dahua IP camera
+    camera = cv2.VideoCapture(rtsp_url)
+    
+    while True:
+        success, frame = camera.read()
+        if not success:
+            # Reconnect if the stream drops
+            camera.release()
+            camera = cv2.VideoCapture(rtsp_url)
+            continue
+            
+        # Encode the frame into a JPEG for web browser viewing
+        ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+        frame = buffer.tobytes()
+        
+        # Yield the image byte data in an MJPEG format
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+@views_bp.route('/video_feed')
+@login_required 
+def video_feed():
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
