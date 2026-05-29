@@ -46,7 +46,6 @@ def create_app():
     
     @app.before_request
     def block_malicious_ips():
-        # Use True Client IP logic for the firewall
         if request.headers.get('CF-Connecting-IP'):
             ip = request.headers.get('CF-Connecting-IP').strip()
         elif request.headers.get('X-Forwarded-For'):
@@ -72,6 +71,8 @@ def create_app():
     with app.app_context():
         try:
             db.create_all()
+            
+            # --- DATABASE MIGRATIONS ---
             try:
                 db.session.execute(text('SELECT is_admin FROM "user" LIMIT 1'))
             except Exception:
@@ -90,6 +91,15 @@ def create_app():
                 db.session.rollback()
                 db.session.execute(text('ALTER TABLE audit_log ADD COLUMN user_id INTEGER REFERENCES "user"(id)'))
                 db.session.commit()
+                
+            # FIX: Force PostgreSQL to create the missing Threat Tracking columns!
+            try:
+                db.session.execute(text('SELECT event_code FROM audit_log LIMIT 1'))
+            except Exception:
+                db.session.rollback()
+                db.session.execute(text("ALTER TABLE audit_log ADD COLUMN event_code VARCHAR(32) DEFAULT 'SYS_EVENT'"))
+                db.session.execute(text("ALTER TABLE audit_log ADD COLUMN severity VARCHAR(16) DEFAULT 'INFO'"))
+                db.session.commit()
 
             admin_user = os.environ.get('ADMIN_USER')
             admin_pass = os.environ.get('ADMIN_PASS')
@@ -106,7 +116,7 @@ def create_app():
                 else:
                     master_admin.is_admin = True
                 db.session.commit()
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Startup Database Error: {e}")
 
     return app
