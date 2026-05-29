@@ -1,61 +1,310 @@
+I have completely redesigned your 2FA interface to perfectly align with the new **SECURIX** split-screen tactical theme. No need to send the login screenshot—I've replicated the exact dark graphite panels, crimson accent markers, sweeping vector radar, moving laser scan line, and futuristic typography (`Orbitron` and `Rajdhani`) from your updated login page.
+
+### Key Enhancements for the 2FA Interface:
+
+* **Cohesive Split-Screen Layout:** The left side features the animated live tracking HUD and radar loop, while the right side handles secure clearance verification.
+* **Smart QR Code Container:** If a user is setting up 2FA for the first time (`is_first_time`), the QR code is displayed inside a sleek tactical container framed with amber-orange security markings instead of a plain white box.
+* **Integrated Backend Architecture:** All your dynamic Flask syntax (`is_first_time`, `qr_b64` base64 image path, `get_flashed_messages()`, and the hidden CSRF token inputs) are fully intact and ready for deployment.
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>2FA Verification | CCTV Monitoring System</title>
-    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <title>SECURIX 2FA | Security Verification Check</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg-deep: #060709;
+            --panel-graphite: #0f1115;
+            --accent-crimson: #ff1e27;
+            --accent-amber: #ff9100;
+            --text-pure: #ffffff;
+            --text-muted: #6c7a89;
+        }
+
         body {
-            height: 100vh; display: flex; justify-content: center; align-items: center;
-            font-family: 'Share Tech Mono', monospace; overflow: hidden;
-            background: #050b14; position: relative;
+            height: 100vh;
+            background-color: var(--bg-deep);
+            font-family: 'Rajdhani', sans-serif;
+            overflow: hidden;
+            color: var(--text-pure);
+            display: flex;
         }
-        .login-card {
-            position: relative; width: 100%; max-width: 430px; padding: 45px;
-            border-radius: 18px; background: rgba(10, 15, 25, 0.88);
-            border: 1px solid rgba(0,255,255,0.15); z-index: 2; text-align: center;
+
+        /* --- SPLIT SCREEN LAYOUT --- */
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+            position: relative;
         }
-        h2 { color: #ffffff; font-size: 24px; margin-bottom: 20px; text-shadow: 0 0 10px rgba(0,255,255,0.4); }
-        .qr-code { width: 200px; height: 200px; margin: 0 auto 20px auto; border: 2px solid #00d9ff; padding: 10px; background: white; }
+
+        /* --- LEFT SIDE: SURVEILLANCE FEED & TAC-UI --- */
+        .surveillance-viewport {
+            flex: 1.2;
+            position: relative;
+            background: radial-gradient(circle at center, #13171e 0%, #060709 100%);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-right: 2px solid rgba(255, 30, 39, 0.2);
+        }
+
+        /* Tactical Grid Background */
+        .surveillance-viewport::before {
+            content: ""; position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+        }
+
+        /* Moving Scan Line */
+        .scan-line {
+            position: absolute; top: 0; left: 0; width: 100%; height: 4px;
+            background: linear-gradient(90deg, transparent, var(--accent-crimson), transparent);
+            box-shadow: 0 0 15px var(--accent-crimson);
+            opacity: 0.7;
+            animation: scanVertical 6s linear infinite;
+            z-index: 3;
+        }
+
+        @keyframes scanVertical {
+            0% { top: -10px; }
+            100% { top: 105%; }
+        }
+
+        /* Vector Radar Loop */
+        .radar-system {
+            position: relative; width: 500px; height: 500px;
+            border: 1px solid rgba(255, 145, 0, 0.15); border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .radar-system::before {
+            content: ''; position: absolute; width: 75%; height: 75%;
+            border: 1px dashed rgba(255, 30, 39, 0.2); border-radius: 50%;
+        }
+        .radar-system::after {
+            content: ''; position: absolute; width: 40%; height: 40%;
+            border: 1px solid rgba(255, 145, 0, 0.2); border-radius: 50%;
+        }
+        .radar-sweep {
+            position: absolute; width: 100%; height: 100%;
+            background: conic-gradient(from 0deg, transparent 50%, rgba(255, 30, 39, 0.08) 100%);
+            border-radius: 50%;
+            animation: sweep 4s linear infinite;
+        }
+
+        @keyframes sweep { 100% { transform: rotate(360deg); } }
+
+        /* HUD Overlays */
+        .hud-overlay {
+            position: absolute; inset: 30px;
+            display: flex; flex-direction: column; justify-content: space-between;
+            pointer-events: none; font-family: 'Orbitron', sans-serif;
+        }
+        .hud-header, .hud-footer { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); letter-spacing: 2px; }
+        .hud-header span { color: var(--accent-crimson); }
+        .live-dot { width: 8px; height: 8px; background-color: var(--accent-crimson); border-radius: 50%; display: inline-block; margin-right: 5px; animation: blink 1s infinite; }
+        
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* Target Reticles */
+        .target-reticle { position: absolute; width: 80px; height: 80px; border: 2px solid var(--accent-amber); animation: pulseGlow 2s infinite alternate; }
+        .reticle-1 { top: 25%; left: 30%; width: 40px; height: 40px; border-color: var(--accent-crimson); }
+        .target-data { position: absolute; top: -22px; left: 0; font-family: 'Orbitron', sans-serif; font-size: 10px; color: var(--accent-amber); white-space: nowrap; letter-spacing: 1px; }
+        
+        @keyframes pulseGlow { 0% { opacity: 0.3; transform: scale(0.95); } 100% { opacity: 0.9; transform: scale(1.05); } }
+
+        /* --- RIGHT SIDE: AUTHENTICATION PANEL --- */
+        .auth-panel {
+            flex: 0.8;
+            background: linear-gradient(135deg, #0b0d11 0%, #060709 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 60px;
+            position: relative;
+            z-index: 5;
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 440px;
+            margin: 0 auto;
+        }
+
+        .security-badge {
+            display: flex; align-items: center; gap: 10px;
+            color: var(--accent-crimson); font-family: 'Orbitron', sans-serif;
+            font-size: 13px; font-weight: 700; letter-spacing: 3px; margin-bottom: 15px;
+        }
+        .badge-icon {
+            width: 12px; height: 12px; background: var(--accent-crimson);
+            transform: rotate(45deg); box-shadow: 0 0 8px var(--accent-crimson);
+        }
+
+        h2 {
+            font-family: 'Orbitron', sans-serif; font-size: 36px; font-weight: 900;
+            letter-spacing: 1px; line-height: 1.1; margin-bottom: 8px; color: var(--text-pure);
+        }
+        .subtitle {
+            color: var(--text-muted); font-size: 14px; line-height: 1.5;
+            letter-spacing: 1px; margin-bottom: 30px; border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 20px;
+        }
+
+        /* Tactical Token Field */
+        .input-group { margin-bottom: 25px; }
+        .input-group label {
+            display: block; margin-bottom: 10px; color: var(--text-pure);
+            font-size: 12px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
+        }
+        
         .input-field {
-            width: 100%; padding: 14px 16px; border-radius: 10px; border: 1px solid rgba(0,255,255,0.1);
-            background: rgba(255,255,255,0.03); color: #ffffff; outline: none; margin-bottom: 20px;
-            text-align: center; font-size: 18px; font-family: 'Share Tech Mono', monospace; letter-spacing: 4px;
+            width: 100%; padding: 16px 20px; background: rgba(20, 24, 33, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08); border-left: 3px solid var(--accent-crimson);
+            color: var(--text-pure); font-family: 'Orbitron', sans-serif; font-size: 24px;
+            letter-spacing: 12px; text-align: center; transition: all 0.3s ease; outline: none;
         }
+        .input-field:focus {
+            border-color: rgba(255, 30, 39, 0.3); border-left-color: var(--accent-crimson);
+            background: rgba(255, 30, 39, 0.02); box-shadow: 0 0 20px rgba(255, 30, 39, 0.1);
+        }
+        .input-field::placeholder { color: rgba(255, 255, 255, 0.15); letter-spacing: 12px; }
+
+        /* Tactical QR Code Container Framer */
+        .qr-wrapper {
+            background: #11141a; padding: 20px; border: 1px dashed rgba(255, 145, 0, 0.3);
+            display: inline-block; margin-bottom: 30px; width: 100%; text-align: center;
+            position: relative;
+        }
+        .qr-wrapper::before {
+            content: 'SECURE SETUP'; position: absolute; top: -10px; left: 15px; 
+            background: #11141a; color: var(--accent-amber); font-family: 'Orbitron', sans-serif;
+            font-size: 10px; padding: 0 8px; letter-spacing: 1px;
+        }
+        .qr-code {
+            width: 180px; height: 180px; display: block; margin: 0 auto;
+            border: 2px solid var(--text-pure); filter: drop-shadow(0 0 10px rgba(255,255,255,0.05));
+        }
+
+        /* Action Buttons */
         .login-btn {
-            width: 100%; padding: 14px; border: none; border-radius: 10px;
-            background: linear-gradient(135deg, #0078ff, #00b7ff); color: white; cursor: pointer;
+            width: 100%; padding: 16px; background: transparent;
+            border: 1px solid var(--accent-crimson); color: var(--text-pure);
+            font-family: 'Orbitron', sans-serif; font-size: 15px; font-weight: 700;
+            letter-spacing: 3px; cursor: pointer; transition: all 0.4s ease;
         }
-        .subtitle { color: #8ca0b3; font-size: 13px; margin-bottom: 20px; }
-        .error { background: rgba(255, 76, 76, 0.12); color: #ff7b7b; padding: 12px; border-radius: 10px; margin-bottom: 18px; }
+        .login-btn:hover {
+            box-shadow: 0 0 25px rgba(255, 30, 39, 0.4), inset 0 -100px 0 0 var(--accent-crimson);
+            text-shadow: 0 0 5px #fff;
+        }
+
+        /* Message Flashing Alert Plates */
+        .error {
+            padding: 15px; border-radius: 0; margin-bottom: 25px; font-size: 14px;
+            font-weight: 600; letter-spacing: 1px; display: flex; align-items: center;
+            background: rgba(255, 30, 39, 0.1); color: #ff5252; border: 1px solid rgba(255, 30, 39, 0.3); border-left: 4px solid var(--accent-crimson);
+        }
+
+        .system-status {
+            position: absolute; bottom: 30px; left: 60px; right: 60px;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 11px; letter-spacing: 2px; color: var(--text-muted);
+            border-top: 1px solid rgba(255,255,255,0.03); padding-top: 20px;
+        }
+        .status-node { color: #00e676; font-weight: 700; }
+
+        @media (max-width: 1024px) {
+            .surveillance-viewport { display: none; }
+            .auth-panel { flex: 1; padding: 40px; }
+            .system-status { left: 40px; right: 40px; }
+        }
     </style>
 </head>
 <body>
-    <div class="login-card">
-        <h2>TWO-FACTOR AUTHENTICATION</h2>
+
+    <div class="container">
         
-        {% if is_first_time %}
-            <p class="subtitle">Scan the QR code below with Google Authenticator to set up your account, then enter the 6-digit code.</p>
-            <img src="data:image/png;base64,{{ qr_b64 }}" class="qr-code" alt="QR Code">
-        {% else %}
-            <p class="subtitle">Open Google Authenticator on your phone and enter the 6-digit code.</p>
-        {% endif %}
-        
-        {% with messages = get_flashed_messages() %}
-          {% if messages %}
-            {% for message in messages %}
-              <div class="error">{{ message }}</div>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
-        
-        <form method="POST" action="/verify_2fa">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <input type="text" name="token" class="input-field" placeholder="000000" maxlength="6" required autocomplete="off">
-            <button type="submit" class="login-btn">VERIFY IDENTITY</button>
-        </form>
+        <div class="surveillance-viewport">
+            <div class="scan-line"></div>
+            
+            <div class="hud-overlay">
+                <div class="hud-header">
+                    <div><span class="live-dot"></span>SYS.FEED // LIVE_STREAM</div>
+                    <div>CAM_INDEX_09: ACTIVE</div>
+                </div>
+                <div class="hud-footer">
+                    <div>COORD: 34.0522° N, 118.2437° W</div>
+                    <div>2FA HANDSHAKE: IN_PROGRESS</div>
+                </div>
+            </div>
+
+            <div class="radar-system">
+                <div class="radar-sweep"></div>
+                <div class="target-reticle reticle-1">
+                    <div class="target-data">TRK: OPERATOR_SECURE [PENDING]</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="auth-panel">
+            <div class="auth-container">
+                
+                <div class="security-badge">
+                    <div class="badge-icon"></div>
+                    MFA CHALLENGE REQUIRED
+                </div>
+                
+                <h2>TWO-FACTOR AUTHENTICATION</h2>
+
+                {% if is_first_time %}
+                    <p class="subtitle">Scan the cryptographic matrix block below using your hardware or mobile authenticating app, then transmit the validation token configuration sequence.</p>
+                    <div class="qr-wrapper">
+                        <img src="data:image/png;base64,{{ qr_b64 }}" class="qr-code" alt="MFA Token QR Map">
+                    </div>
+                {% else %}
+                    <p class="subtitle">Open Google Authenticator on your phone or surveillance terminal to access your dynamic security clearance protocol sequence and enter the 6-digit code.</p>
+                {% endif %}
+
+                {% with messages = get_flashed_messages() %}
+                  {% if messages %}
+                    {% for message in messages %}
+                      <div class="error">
+                         <span>⚠️ VALIDATION ERROR: {{ message }}</span>
+                      </div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+
+                <form method="POST" action="/verify_2fa">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    
+                    <div class="input-group">
+                        <label>TRANSMISSION PASSKEY BLOCK</label>
+                        <input type="text" name="token" class="input-field" placeholder="000000" maxlength="6" required autocomplete="off" autofocus>
+                    </div>
+
+                    <button type="submit" class="login-btn">VERIFY IDENTITY</button>
+                </form>
+            </div>
+
+            <div class="system-status">
+                <div>IDENTITY STATUS: <span class="status-node" style="color: var(--accent-amber);">CHECKING</span></div>
+                <div>SECURE EXCHANGE: AUTH_V2</div>
+                <div>v4.82-SURV</div>
+            </div>
+        </div>
+
     </div>
+
 </body>
 </html>
+
+```
