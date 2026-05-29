@@ -443,26 +443,9 @@
             
             <div class="admin-grid">
 
+                <!-- FIREWALL PANEL -->
                 <div class="admin-card" style="grid-column: 1 / -1;">
                     <div class="logs-title">FIREWALL & IP MANAGEMENT</div>
-                    
-                    <div class="sub-label">MANUAL BLOCK ENTRY</div>
-                    <form action="/admin/manage_firewall" method="POST" style="display:flex; gap:15px; align-items:flex-end;">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                        <input type="hidden" name="action" value="block">
-                        
-                        <div class="admin-input-group" style="margin-bottom:0; flex:1;">
-                            <label>IP ADDRESS</label>
-                            <input type="text" name="ip_address" class="admin-input" placeholder="e.g. 192.168.1.50" required autocomplete="off">
-                        </div>
-                        <div class="admin-input-group" style="margin-bottom:0; flex:2;">
-                            <label>REASON / THREAT NOTE</label>
-                            <input type="text" name="reason" class="admin-input" placeholder="e.g. Brute Force Attempt" autocomplete="off">
-                        </div>
-                        <button type="submit" class="admin-btn danger" style="width:auto; padding: 14px 25px;">BLOCK IP</button>
-                    </form>
-
-                    <div class="section-divider"></div>
 
                     <div class="sub-label">RECENT DETECTED IPs (QUICK BLOCK)</div>
                     <ul class="user-list" style="margin-bottom: 25px;">
@@ -506,6 +489,7 @@
                     </ul>
                 </div>
 
+                <!-- ADD OPERATOR PANEL -->
                 <div class="admin-card">
                     <div class="logs-title">ADD NEW OPERATOR</div>
                     <form action="/admin/manage_users" method="POST">
@@ -544,6 +528,7 @@
                     </form>
                 </div>
 
+                <!-- MANAGE USERS PANEL -->
                 <div class="admin-card">
                     <div class="logs-title">SYSTEM USERS</div>
                     <ul class="user-list">
@@ -822,6 +807,7 @@
     </script>
 
     {% if is_admin %}
+    <!-- Edit Username Modal -->
     <div id="edit-modal" style="display:none; position:fixed; inset:0; z-index:999; background:rgba(0,0,0,0.85); justify-content:center; align-items:center;">
         <div style="background:var(--panel-graphite); border:1px solid var(--accent-crimson); border-radius:8px; padding:32px; width:380px; position:relative; box-shadow: 0 0 30px rgba(255,30,39,0.2);">
             <div style="font-family:'Orbitron',sans-serif; font-size:15px; font-weight:700; letter-spacing:2px; color:var(--text-pure); margin-bottom:20px; text-transform:uppercase;">EDIT USERNAME</div>
