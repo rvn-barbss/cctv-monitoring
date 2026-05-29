@@ -507,89 +507,6 @@
             <div class="admin-grid">
 
                 <div class="admin-card" style="grid-column: 1 / -1;">
-                    <div class="logs-title">FIREWALL & IP MANAGEMENT</div>
-
-                    <div class="sub-label">RECENT DETECTED IPs (QUICK BLOCK)</div>
-                    <ul class="user-list" style="margin-bottom: 25px;">
-                        {% for a in active_ips %}
-                        <li>
-                            <span>
-                                <span style="font-family:'Orbitron',sans-serif; color:var(--text-pure);">{{ a.ip }}</span>
-                                <span style="color:var(--text-muted); font-size:13px; margin-left:15px;">Last Activity: {{ a.action }} ({{ a.user }})</span>
-                            </span>
-                            <form action="/admin/manage_firewall" method="POST" style="display:inline;">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                <input type="hidden" name="action" value="block">
-                                <input type="hidden" name="ip_address" value="{{ a.ip }}">
-                                <input type="hidden" name="reason" value="Quick block from active IP list">
-                                <button type="submit" class="admin-btn danger" style="padding: 6px 12px; width:auto;">BLOCK</button>
-                            </form>
-                        </li>
-                        {% else %}
-                        <li style="color:var(--text-muted); justify-content:center; border:none; padding: 5px 0;">No unblocked recent activity found.</li>
-                        {% endfor %}
-                    </ul>
-
-                    <div class="sub-label" style="color:var(--accent-crimson);">CURRENTLY BLOCKED IPs</div>
-                    <ul class="user-list">
-                        {% for b in blocked_ips %}
-                        <li>
-                            <span>
-                                <span style="font-family:'Orbitron',sans-serif; color:var(--accent-crimson);">{{ b.ip_address }}</span>
-                                <span style="color:var(--text-muted); font-size:13px; margin-left:15px;">{{ b.reason }}</span>
-                            </span>
-                            <form action="/admin/manage_firewall" method="POST" style="display:inline;">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                <input type="hidden" name="action" value="unblock">
-                                <input type="hidden" name="ip_address" value="{{ b.ip_address }}">
-                                <button type="submit" class="admin-btn" style="padding: 6px 12px; width:auto; border-color: rgba(255,255,255,0.15);">UNBLOCK</button>
-                            </form>
-                        </li>
-                        {% else %}
-                        <li style="color:var(--text-muted); justify-content:center; border:none;">No IP addresses are currently blocked by the firewall.</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-
-                <div class="admin-card">
-                    <div class="logs-title">ADD NEW OPERATOR</div>
-                    <form action="/admin/manage_users" method="POST">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                        <input type="hidden" name="action" value="add">
-                        
-                        <div class="admin-input-group">
-                            <label>ROLE</label>
-                            <select name="role" class="admin-input">
-                                <option value="operator">Normal Operator</option>
-                                <option value="admin">Master Admin</option>
-                            </select>
-                        </div>
-                        
-                        <div class="admin-input-group">
-                            <label>USERNAME</label>
-                            <input type="text" name="target_username" class="admin-input" required autocomplete="off">
-                        </div>
-                        <div class="admin-input-group">
-                            <label>PASSWORD</label>
-                            <input type="password" name="password" id="password-input" class="admin-input" required autocomplete="new-password">
-
-                            <div class="strength-wrapper">
-                                <div class="strength-bar"><div id="strength-fill"></div></div>
-                                <div id="strength-text" class="strength-text">PASSWORD STRENGTH</div>
-                            </div>
-
-                            <div class="pass-rules">
-                                <div id="rule-length" class="invalid">✖ At least 8 characters</div>
-                                <div id="rule-upper" class="invalid">✖ Uppercase letter</div>
-                                <div id="rule-number" class="invalid">✖ Number</div>
-                                <div id="rule-special" class="invalid">✖ Special character</div>
-                            </div>
-                        </div>
-                        <button type="submit" class="admin-btn">CREATE USER</button>
-                    </form>
-                </div>
-
-                <div class="admin-card" style="grid-column: 1 / -1;">
                     <div class="logs-title">SYSTEM USERS</div>
                     
                     <div class="user-grid">
@@ -644,6 +561,89 @@
                         </div>
                         {% endfor %}
                     </div>
+                </div>
+
+                <div class="admin-card" style="grid-column: 1 / -1;">
+                    <div class="logs-title">FIREWALL & IP MANAGEMENT</div>
+
+                    <div class="sub-label">RECENT DETECTED IPs (QUICK BLOCK)</div>
+                    <ul class="user-list" style="margin-bottom: 25px;">
+                        {% for a in active_ips %}
+                        <li>
+                            <span>
+                                <span style="font-family:'Orbitron',sans-serif; color:var(--text-pure);">{{ a.ip }}</span>
+                                <span style="color:var(--text-muted); font-size:13px; margin-left:15px;">Last Activity: {{ a.action }} ({{ a.user }})</span>
+                            </span>
+                            <form action="/admin/manage_firewall" method="POST" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <input type="hidden" name="action" value="block">
+                                <input type="hidden" name="ip_address" value="{{ a.ip }}">
+                                <input type="hidden" name="reason" value="Quick block from active IP list">
+                                <button type="submit" class="admin-btn danger" style="padding: 6px 12px; width:auto;">BLOCK</button>
+                            </form>
+                        </li>
+                        {% else %}
+                        <li style="color:var(--text-muted); justify-content:center; border:none; padding: 5px 0;">No unblocked recent activity found.</li>
+                        {% endfor %}
+                    </ul>
+
+                    <div class="sub-label" style="color:var(--accent-crimson);">CURRENTLY BLOCKED IPs</div>
+                    <ul class="user-list">
+                        {% for b in blocked_ips %}
+                        <li>
+                            <span>
+                                <span style="font-family:'Orbitron',sans-serif; color:var(--accent-crimson);">{{ b.ip_address }}</span>
+                                <span style="color:var(--text-muted); font-size:13px; margin-left:15px;">{{ b.reason }}</span>
+                            </span>
+                            <form action="/admin/manage_firewall" method="POST" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <input type="hidden" name="action" value="unblock">
+                                <input type="hidden" name="ip_address" value="{{ b.ip_address }}">
+                                <button type="submit" class="admin-btn" style="padding: 6px 12px; width:auto; border-color: rgba(255,255,255,0.15);">UNBLOCK</button>
+                            </form>
+                        </li>
+                        {% else %}
+                        <li style="color:var(--text-muted); justify-content:center; border:none;">No IP addresses are currently blocked by the firewall.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="admin-card" style="grid-column: 1 / -1; max-width: 650px; margin: 0 auto; width: 100%;">
+                    <div class="logs-title">ADD NEW OPERATOR</div>
+                    <form action="/admin/manage_users" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <input type="hidden" name="action" value="add">
+                        
+                        <div class="admin-input-group">
+                            <label>ROLE</label>
+                            <select name="role" class="admin-input">
+                                <option value="operator">Normal Operator</option>
+                                <option value="admin">Master Admin</option>
+                            </select>
+                        </div>
+                        
+                        <div class="admin-input-group">
+                            <label>USERNAME</label>
+                            <input type="text" name="target_username" class="admin-input" required autocomplete="off">
+                        </div>
+                        <div class="admin-input-group">
+                            <label>PASSWORD</label>
+                            <input type="password" name="password" id="password-input" class="admin-input" required autocomplete="new-password">
+
+                            <div class="strength-wrapper">
+                                <div class="strength-bar"><div id="strength-fill"></div></div>
+                                <div id="strength-text" class="strength-text">PASSWORD STRENGTH</div>
+                            </div>
+
+                            <div class="pass-rules">
+                                <div id="rule-length" class="invalid">✖ At least 8 characters</div>
+                                <div id="rule-upper" class="invalid">✖ Uppercase letter</div>
+                                <div id="rule-number" class="invalid">✖ Number</div>
+                                <div id="rule-special" class="invalid">✖ Special character</div>
+                            </div>
+                        </div>
+                        <button type="submit" class="admin-btn">CREATE USER</button>
+                    </form>
                 </div>
 
             </div>
