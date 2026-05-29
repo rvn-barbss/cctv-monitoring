@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from flask import Blueprint, render_template, redirect, url_for, session, abort, Response
 from flask_login import login_required, current_user
 from app.models import User, AuditLog, BlockedIP
-
 from app.utils import record_activity
 
 views_bp = Blueprint('views', __name__)
@@ -22,9 +21,27 @@ def dashboard():
     all_users = User.query.all() if current_user.is_admin else []
     blocked_ips = BlockedIP.query.all() if current_user.is_admin else []
     
+    active_ips = []
+    if current_user.is_admin:
+        recent_logs = AuditLog.query.order_by(AuditLog.id.desc()).limit(200).all()
+        blocked_set = {b.ip_address for b in blocked_ips}
+        seen = set()
+        
+        for log in recent_logs:
+            ip = log.ip_address
+            if ip and ip not in seen and ip not in blocked_set:
+                active_ips.append({
+                    'ip': ip,
+                    'action': log.action,
+                    'user': log.user.username if log.user else 'Unknown'
+                })
+                seen.add(ip)
+            if len(active_ips) >= 5:
+                break
+    
     cam_url = os.environ.get('CAM_URL', '') 
     
-    return render_template('camera.html', is_admin=current_user.is_admin, all_users=all_users, blocked_ips=blocked_ips, cam_url=cam_url)
+    return render_template('camera.html', is_admin=current_user.is_admin, all_users=all_users, blocked_ips=blocked_ips, active_ips=active_ips, cam_url=cam_url)
 
 @views_bp.route('/get_logs', strict_slashes=False)
 @login_required

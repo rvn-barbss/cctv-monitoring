@@ -304,6 +304,9 @@
 
         @keyframes row-in { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
         .log-table tbody tr.new-row { animation: row-in 0.3s ease both; }
+        
+        .section-divider { height: 1px; background: rgba(255,255,255,0.05); margin: 25px 0; }
+        .sub-label { font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--accent-amber); margin-bottom: 15px; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -443,7 +446,8 @@
                 <div class="admin-card" style="grid-column: 1 / -1;">
                     <div class="logs-title">FIREWALL & IP MANAGEMENT</div>
                     
-                    <form action="/admin/manage_firewall" method="POST" style="display:flex; gap:15px; align-items:flex-end; margin-bottom: 20px;">
+                    <div class="sub-label">MANUAL BLOCK ENTRY</div>
+                    <form action="/admin/manage_firewall" method="POST" style="display:flex; gap:15px; align-items:flex-end;">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <input type="hidden" name="action" value="block">
                         
@@ -458,6 +462,30 @@
                         <button type="submit" class="admin-btn danger" style="width:auto; padding: 14px 25px;">BLOCK IP</button>
                     </form>
 
+                    <div class="section-divider"></div>
+
+                    <div class="sub-label">RECENT DETECTED IPs (QUICK BLOCK)</div>
+                    <ul class="user-list" style="margin-bottom: 25px;">
+                        {% for a in active_ips %}
+                        <li>
+                            <span>
+                                <span style="font-family:'Orbitron',sans-serif; color:var(--text-pure);">{{ a.ip }}</span>
+                                <span style="color:var(--text-muted); font-size:13px; margin-left:15px;">Last Activity: {{ a.action }} ({{ a.user }})</span>
+                            </span>
+                            <form action="/admin/manage_firewall" method="POST" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <input type="hidden" name="action" value="block">
+                                <input type="hidden" name="ip_address" value="{{ a.ip }}">
+                                <input type="hidden" name="reason" value="Quick block from active IP list">
+                                <button type="submit" class="admin-btn danger" style="padding: 6px 12px; width:auto;">BLOCK</button>
+                            </form>
+                        </li>
+                        {% else %}
+                        <li style="color:var(--text-muted); justify-content:center; border:none; padding: 5px 0;">No unblocked recent activity found.</li>
+                        {% endfor %}
+                    </ul>
+
+                    <div class="sub-label" style="color:var(--accent-crimson);">CURRENTLY BLOCKED IPs</div>
                     <ul class="user-list">
                         {% for b in blocked_ips %}
                         <li>
@@ -646,7 +674,6 @@
         window.addEventListener('load', () => { showConnecting(); tryPath(0); });
 
         let allLogs = [], activeDays = 7, activeType = 'all', sortAsc = false;
-        // Fetch CSRF Token from meta tag
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         const isAdmin = {{ 'true' if is_admin else 'false' }};
 
@@ -728,7 +755,6 @@
                 const animClass = isNew ? 'new-row' : '';
                 const delay = isNew ? `style="animation-delay:${i*18}ms"` : '';
 
-                // NEW: Inject ONE-CLICK Block Button for Admin if it's a threat
                 let ipDisplay = log.ip;
                 if (isAdmin && isThreat) {
                     ipDisplay += `
