@@ -248,6 +248,15 @@
             cursor: pointer; display: flex; align-items: center; gap: 8px;
         }
 
+        /* NEW: Search Bar Styling */
+        .search-input {
+            font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 600;
+            color: var(--text-pure); background: #11141a; border: 1px solid var(--border-subtle);
+            padding: 8px 18px; outline: none; border-left: 2px solid var(--accent-amber);
+            width: 200px; transition: all 0.3s;
+        }
+        .search-input:focus { border-color: rgba(255, 145, 0, 0.5); }
+
         .log-table { width: 100%; border-collapse: collapse; }
         .log-table thead tr { border-bottom: 1px solid rgba(255,255,255,0.05); background: #0d0f14; }
         .log-table th { font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--text-muted); padding: 16px 20px; text-align: left; }
@@ -421,6 +430,11 @@
                     <span id="sort-label">Newest First</span>
                     <span id="sort-arrow">↓</span>
                 </button>
+                
+                <div class="filter-sep"></div>
+                <span class="filter-label">SEARCH:</span>
+                <input type="text" class="search-input" placeholder="IP, User, Action..." oninput="handleSearch(this.value)">
+
                 <span class="log-count" id="log-count" style="margin-left:auto; font-family:'Orbitron',sans-serif; font-size:11px; color:var(--text-muted);"></span>
             </div>
             <div class="log-table-container">
@@ -443,7 +457,6 @@
             
             <div class="admin-grid">
 
-                <!-- FIREWALL PANEL -->
                 <div class="admin-card" style="grid-column: 1 / -1;">
                     <div class="logs-title">FIREWALL & IP MANAGEMENT</div>
 
@@ -489,7 +502,6 @@
                     </ul>
                 </div>
 
-                <!-- ADD OPERATOR PANEL -->
                 <div class="admin-card">
                     <div class="logs-title">ADD NEW OPERATOR</div>
                     <form action="/admin/manage_users" method="POST">
@@ -528,7 +540,6 @@
                     </form>
                 </div>
 
-                <!-- MANAGE USERS PANEL -->
                 <div class="admin-card">
                     <div class="logs-title">SYSTEM USERS</div>
                     <ul class="user-list">
@@ -658,7 +669,8 @@
 
         window.addEventListener('load', () => { showConnecting(); tryPath(0); });
 
-        let allLogs = [], activeDays = 7, activeType = 'all', sortAsc = false;
+        // NEW: searchQuery variable to hold live filter state
+        let allLogs = [], activeDays = 7, activeType = 'all', sortAsc = false, searchQuery = '';
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         const isAdmin = {{ 'true' if is_admin else 'false' }};
 
@@ -693,6 +705,12 @@
             renderLogs();
         }
 
+        // NEW: Function to capture live input from the search bar
+        function handleSearch(val) {
+            searchQuery = val.toLowerCase();
+            renderLogs();
+        }
+
         function parseLine(line) {
             const m = line.match(/\[(.*?)\]\s(.*?)\s-\s(.*?)\s\((.*?)\)/);
             if (!m) return null;
@@ -713,6 +731,13 @@
                 if (activeType === 'failed'  && !log.action.includes('FAILED LOGIN'))  return false;
                 if (activeType === 'alerts'  && !log.action.includes('REQUESTED') && !log.action.includes('ALERT')) return false;
                 if (activeType === 'passreset' && !log.action.includes('PASSWORD RESET REQUESTED')) return false;
+                
+                // NEW: Search Engine logic compares input against all fields
+                if (searchQuery) {
+                    const rowData = `${log.date} ${log.time} ${log.user} ${log.action} ${log.ip}`.toLowerCase();
+                    if (!rowData.includes(searchQuery)) return false;
+                }
+                
                 return true;
             });
             
@@ -760,7 +785,7 @@
                 </tr>`;
             });
 
-            document.getElementById('log-body').innerHTML = html || '<tr><td colspan="5" style="color:var(--text-muted); text-align:center;">No logs found.</td></tr>';
+            document.getElementById('log-body').innerHTML = html || '<tr><td colspan="5" style="color:var(--text-muted); text-align:center;">No records match your search or filter.</td></tr>';
 
             if (isNewData) {
                 existingKeys = new Set(allLogs.map(makeKey));
@@ -807,7 +832,6 @@
     </script>
 
     {% if is_admin %}
-    <!-- Edit Username Modal -->
     <div id="edit-modal" style="display:none; position:fixed; inset:0; z-index:999; background:rgba(0,0,0,0.85); justify-content:center; align-items:center;">
         <div style="background:var(--panel-graphite); border:1px solid var(--accent-crimson); border-radius:8px; padding:32px; width:380px; position:relative; box-shadow: 0 0 30px rgba(255,30,39,0.2);">
             <div style="font-family:'Orbitron',sans-serif; font-size:15px; font-weight:700; letter-spacing:2px; color:var(--text-pure); margin-bottom:20px; text-transform:uppercase;">EDIT USERNAME</div>
