@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>SECURIX | Advanced Control Panel</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -28,7 +29,6 @@
             position: relative;
         }
 
-        /* --- BACKGROUND ENVIRONMENT CONTINUITY --- */
         body::before {
             content: '';
             position: fixed; inset: 0;
@@ -54,7 +54,6 @@
             100% { top: 105%; }
         }
 
-        /* --- STYLISH NAVIGATION BAR --- */
         .navbar {
             position: relative; z-index: 10;
             display: flex; justify-content: space-between; align-items: center;
@@ -106,7 +105,6 @@
             box-shadow: 0 0 20px rgba(255, 30, 39, 0.3), inset 0 -50px 0 0 var(--accent-crimson);
         }
 
-        /* --- CONTROL INTERFACE PANELS --- */
         .main {
             position: relative; z-index: 1;
             max-width: 1400px; margin: 40px auto; padding: 0 40px;
@@ -139,7 +137,6 @@
 
         .tab-content { display: none; }
 
-        /* --- MONITORING STREAM VIEW --- */
         .camera-layout { display: grid; grid-template-columns: 1fr 310px; gap: 30px; }
 
         .section-label {
@@ -214,7 +211,6 @@
         }
         .retry-btn:hover { background: var(--accent-crimson); box-shadow: 0 0 15px rgba(255, 30, 39, 0.4); }
 
-        /* --- TACTICAL MATRIX SYSTEM STRUCTURES --- */
         .intel-box { background: #11141a; border: 1px solid var(--border-subtle); padding: 25px; }
         .intel-title { font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--accent-crimson); margin-bottom: 20px; }
         .intel-row { padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
@@ -224,7 +220,6 @@
         .intel-val.live { color: #00e676; }
         .intel-val.warn { color: var(--accent-amber); }
 
-        /* --- DATABASE AUDIT TABLES --- */
         .logs-title {
             font-family: 'Orbitron', sans-serif; font-size: 15px; font-weight: 900;
             letter-spacing: 2px; color: var(--text-pure); margin-bottom: 25px;
@@ -265,7 +260,6 @@
         td.alert   { color: var(--accent-amber); font-weight: 700; }
         td.user-col { color: var(--text-pure); font-family: 'Orbitron', sans-serif; font-size: 12px; }
 
-        /* --- CONTROL MATRIX PANEL & FIELDS --- */
         .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
         .admin-card { background: #11141a; border: 1px solid var(--border-subtle); padding: 30px; }
         .admin-input-group { margin-bottom: 20px; }
@@ -307,6 +301,9 @@
         .pass-rules { margin-top: 15px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; font-weight: 600; }
         .pass-rules .valid { color: #00e676; }
         .pass-rules .invalid { color: var(--accent-crimson); }
+
+        @keyframes row-in { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
+        .log-table tbody tr.new-row { animation: row-in 0.3s ease both; }
     </style>
 </head>
 <body>
@@ -330,9 +327,9 @@
     <div class="main">
         <div class="tab-bar">
             <button class="tab-link active" onclick="openTab(event,'Camera')">CAMERA FEED</button>
+            <button class="tab-link" onclick="openTab(event,'Logs')">LOGS</button>
             
             {% if is_admin %}
-            <button class="tab-link" onclick="openTab(event,'Logs')">LOGS</button>
             <button class="tab-link" onclick="openTab(event,'Admin')">ADMIN SETTINGS</button>
             {% endif %}
         </div>
@@ -394,7 +391,6 @@
             </div>
         </div>
 
-        {% if is_admin %}
         <div id="Logs" class="tab-content card">
             <div class="logs-title">USER ACTIVITY &amp; ACCESS HISTORY</div>
             <div id="log-summary" style="display:flex; gap:30px; margin-bottom:25px; flex-wrap:wrap;">
@@ -438,9 +434,50 @@
             </div>
         </div>
         
+        {% if is_admin %}
         <div id="Admin" class="tab-content card">
             <a href="/admin/export_logs" class="admin-btn dl" style="text-decoration:none;">⬇ DOWNLOAD SECURE AUDIT LOGS (CSV)</a>
+            
             <div class="admin-grid">
+
+                <div class="admin-card" style="grid-column: 1 / -1;">
+                    <div class="logs-title">FIREWALL & IP MANAGEMENT</div>
+                    
+                    <form action="/admin/manage_firewall" method="POST" style="display:flex; gap:15px; align-items:flex-end; margin-bottom: 20px;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <input type="hidden" name="action" value="block">
+                        
+                        <div class="admin-input-group" style="margin-bottom:0; flex:1;">
+                            <label>IP ADDRESS</label>
+                            <input type="text" name="ip_address" class="admin-input" placeholder="e.g. 192.168.1.50" required autocomplete="off">
+                        </div>
+                        <div class="admin-input-group" style="margin-bottom:0; flex:2;">
+                            <label>REASON / THREAT NOTE</label>
+                            <input type="text" name="reason" class="admin-input" placeholder="e.g. Brute Force Attempt" autocomplete="off">
+                        </div>
+                        <button type="submit" class="admin-btn danger" style="width:auto; padding: 14px 25px;">BLOCK IP</button>
+                    </form>
+
+                    <ul class="user-list">
+                        {% for b in blocked_ips %}
+                        <li>
+                            <span>
+                                <span style="font-family:'Orbitron',sans-serif; color:var(--accent-crimson);">{{ b.ip_address }}</span>
+                                <span style="color:var(--text-muted); font-size:13px; margin-left:15px;">{{ b.reason }}</span>
+                            </span>
+                            <form action="/admin/manage_firewall" method="POST" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <input type="hidden" name="action" value="unblock">
+                                <input type="hidden" name="ip_address" value="{{ b.ip_address }}">
+                                <button type="submit" class="admin-btn" style="padding: 6px 12px; width:auto; border-color: rgba(255,255,255,0.15);">UNBLOCK</button>
+                            </form>
+                        </li>
+                        {% else %}
+                        <li style="color:var(--text-muted); justify-content:center; border:none;">No IP addresses are currently blocked by the firewall.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
                 <div class="admin-card">
                     <div class="logs-title">ADD NEW OPERATOR</div>
                     <form action="/admin/manage_users" method="POST">
@@ -609,6 +646,9 @@
         window.addEventListener('load', () => { showConnecting(); tryPath(0); });
 
         let allLogs = [], activeDays = 7, activeType = 'all', sortAsc = false;
+        // Fetch CSRF Token from meta tag
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const isAdmin = {{ 'true' if is_admin else 'false' }};
 
         function openTab(evt, tabName) {
             document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
@@ -641,12 +681,10 @@
             renderLogs();
         }
 
-        // FULL LOGIC RESTORED HERE
         function parseLine(line) {
             const m = line.match(/\[(.*?)\]\s(.*?)\s-\s(.*?)\s\((.*?)\)/);
             if (!m) return null;
             const [date, time] = m[1].split(' ');
-            // FIX: Safely parse date for Safari/iOS
             return { date, time, user: m[2], action: m[3], ip: m[4], timestamp: new Date(`${date}T${time}`) };
         }
 
@@ -679,6 +717,7 @@
 
             let html = '';
             filtered.forEach((log, i) => {
+                const isThreat = log.action.includes('FAILED LOGIN') || log.action.includes('ALERT');
                 const cls = log.action.includes('LOGIN SUCCESS') ? 'success'
                           : log.action.includes('FAILED LOGIN')  ? 'failed'
                           : log.action.includes('REQUESTED') || log.action.includes('ALERT') ? 'alert'
@@ -689,11 +728,24 @@
                 const animClass = isNew ? 'new-row' : '';
                 const delay = isNew ? `style="animation-delay:${i*18}ms"` : '';
 
+                // NEW: Inject ONE-CLICK Block Button for Admin if it's a threat
+                let ipDisplay = log.ip;
+                if (isAdmin && isThreat) {
+                    ipDisplay += `
+                    <form action="/admin/manage_firewall" method="POST" style="display:inline; margin-left:12px;">
+                        <input type="hidden" name="csrf_token" value="${csrfToken}">
+                        <input type="hidden" name="action" value="block">
+                        <input type="hidden" name="ip_address" value="${log.ip}">
+                        <input type="hidden" name="reason" value="Suspicious log behavior detected">
+                        <button type="submit" title="Permanently Blacklist IP" style="background:rgba(255,30,39,0.1); border:1px solid var(--accent-crimson); color:var(--accent-crimson); padding:3px 8px; border-radius:3px; font-family:'Orbitron',sans-serif; font-size:9px; font-weight:700; cursor:pointer;" onclick="return confirm('Permanently block IP ${log.ip}?')">BLOCK IP</button>
+                    </form>`;
+                }
+
                 html += `<tr class="${animClass}" ${delay}>
                   <td>${log.date}</td><td>${log.time}</td>
                   <td class="user-col">${log.user}</td>
                   <td class="${cls}">${log.action}</td>
-                  <td>${log.ip}</td>
+                  <td>${ipDisplay}</td>
                 </tr>`;
             });
 
@@ -740,108 +792,8 @@
                 });
             }
         });
-
-        let lastResetCount = parseInt(sessionStorage.getItem('resetCount') || '-1');
-
-        function showResetToast(username, time) {
-            const container = document.getElementById('toast-container');
-            if(!container) return;
-            const toast = document.createElement('div');
-            toast.className = 'toast-notif';
-            toast.innerHTML = `
-              <div class="toast-icon">⚠️</div>
-              <div class="toast-body">
-                <div class="toast-title">PASSWORD RESET REQUESTED</div>
-                <div class="toast-msg">User <strong>${username}</strong> has requested a password reset.</div>
-                <div class="toast-time">${time} UTC+8</div>
-              </div>
-              <button class="toast-close" onclick="dismissToast(this.parentElement)">✕</button>
-              <div class="toast-progress"></div>
-            `;
-            container.appendChild(toast);
-            setTimeout(() => dismissToast(toast), 6000);
-        }
-
-        function dismissToast(toast) {
-            if (!toast || toast.classList.contains('hiding')) return;
-            toast.classList.add('hiding');
-            setTimeout(() => toast.remove(), 300);
-        }
-
-        function checkResetRequests() {
-            fetch('/get_logs').then(r => r.text()).then(data => {
-                if (!data || data === 'No activity recorded yet.') return;
-                const resets = data.trim().split('\n').filter(l => l.includes('PASSWORD RESET REQUESTED'));
-                const currentCount = resets.length;
-
-                if (lastResetCount === -1) {
-                    lastResetCount = currentCount;
-                    sessionStorage.setItem('resetCount', currentCount);
-                    return;
-                }
-
-                if (currentCount > lastResetCount) {
-                    const newResets = resets.slice(0, currentCount - lastResetCount);
-                    newResets.forEach(line => {
-                        const m = line.match(/\[(.*?)\]\s(.*?)\s-/);
-                        if (m) showResetToast(m[2], m[1]);
-                    });
-                    lastResetCount = currentCount;
-                    sessionStorage.setItem('resetCount', currentCount);
-                }
-            });
-        }
-
-        setInterval(checkResetRequests, 3000);
-        checkResetRequests();
         {% endif %}
     </script>
-
-    <div id="toast-container" style="position:fixed; top:24px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:10px; max-width:360px; width:100%;"></div>
-
-    <style>
-        .toast-notif {
-            display: flex; align-items: flex-start; gap: 14px;
-            background: var(--panel-graphite);
-            border: 1px solid var(--accent-amber);
-            border-left: 4px solid var(--accent-amber);
-            border-radius: 6px; padding: 14px 16px;
-            box-shadow: 0 0 24px rgba(255,145,0,0.2);
-            animation: toast-in 0.3s ease;
-            position: relative; overflow: hidden;
-            font-family: 'Rajdhani', sans-serif;
-        }
-        .toast-notif.hiding { animation: toast-out 0.3s ease forwards; }
-        @keyframes toast-in  { from { opacity:0; transform:translateX(40px); } to { opacity:1; transform:translateX(0); } }
-        @keyframes toast-out { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(40px); } }
-        .toast-notif .toast-icon { font-size:20px; margin-top:2px; }
-        .toast-notif .toast-body { flex:1; }
-        .toast-notif .toast-title {
-            font-family: 'Orbitron', sans-serif;
-            font-size:11px; font-weight: 700; letter-spacing:2px;
-            color: var(--accent-amber); margin-bottom:5px;
-        }
-        .toast-notif .toast-msg  { font-size:14px; color:var(--text-pure); line-height:1.5; font-weight:600;}
-        .toast-notif .toast-msg strong { color: var(--accent-amber); }
-        .toast-notif .toast-time { font-size:11px; color:var(--text-muted); margin-top:4px; font-weight:700;}
-        .toast-notif .toast-close {
-            background:none; border:none; color:var(--text-muted);
-            cursor:pointer; font-size:16px; padding:0; line-height:1;
-            margin-top:1px; transition:color 0.2s;
-        }
-        .toast-notif .toast-close:hover { color:var(--text-pure); }
-        .toast-notif .toast-progress {
-            position:absolute; bottom:0; left:0;
-            height:3px; background:var(--accent-amber);
-            border-radius:0 0 0 6px;
-            animation: shrink 6s linear forwards;
-        }
-        @keyframes shrink { from { width:100%; } to { width:0%; } }
-
-        /* Animation for new log rows */
-        @keyframes row-in { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
-        .log-table tbody tr.new-row { animation: row-in 0.3s ease both; }
-    </style>
 
     {% if is_admin %}
     <div id="edit-modal" style="display:none; position:fixed; inset:0; z-index:999; background:rgba(0,0,0,0.85); justify-content:center; align-items:center;">

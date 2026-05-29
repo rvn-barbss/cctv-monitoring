@@ -6,7 +6,7 @@ from flask import Blueprint, request, redirect, url_for, abort, Response, flash
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
 from app.extensions import db
-from app.models import User, AuditLog
+from app.models import User, AuditLog, BlockedIP
 from app.utils import record_activity
 
 admin_bp = Blueprint('admin', __name__)
@@ -85,6 +85,33 @@ def manage_users():
             db.session.commit()
             record_activity(f"ADMIN ACTION: Deleted user {target_username}", current_user.id)
 
+    return redirect(url_for('views.dashboard'))
+
+# NEW: Firewall Management Route
+@admin_bp.route('/admin/manage_firewall', methods=['POST'])
+@login_required
+def manage_firewall():
+    if not current_user.is_admin:
+        abort(403)
+        
+    action = request.form.get('action')
+    target_ip = request.form.get('ip_address', '').strip()
+    
+    if action == 'block':
+        reason = request.form.get('reason', 'Suspicious Activity Detected')
+        if not BlockedIP.query.filter_by(ip_address=target_ip).first():
+            new_block = BlockedIP(ip_address=target_ip, reason=reason)
+            db.session.add(new_block)
+            db.session.commit()
+            record_activity(f"FIREWALL: Blacklisted IP {target_ip} ({reason})", current_user.id)
+            
+    elif action == 'unblock':
+        block_record = BlockedIP.query.filter_by(ip_address=target_ip).first()
+        if block_record:
+            db.session.delete(block_record)
+            db.session.commit()
+            record_activity(f"FIREWALL: Removed IP {target_ip} from blacklist", current_user.id)
+            
     return redirect(url_for('views.dashboard'))
 
 @admin_bp.route('/admin/export_logs')

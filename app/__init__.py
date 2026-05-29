@@ -1,6 +1,6 @@
 import os
 from datetime import timedelta
-from flask import Flask
+from flask import Flask, request, abort
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash
 from sqlalchemy import text
@@ -40,9 +40,21 @@ def create_app():
         'img-src': ["'self'", "data:", "blob:", "https://*.trycloudflare.com"],
         'script-src': ["'self'", "'unsafe-inline'"]
     }
-    Talisman(app, content_security_policy=csp, frame_options='DENY')
+    Talisman(app, content_security_policy=csp, frame_options='DENY', content_security_policy_nonce_in=[])
 
-    from app.models import User
+    from app.models import User, BlockedIP
+    
+    # NEW: Global Security Interceptor
+    @app.before_request
+    def block_malicious_ips():
+        ip = request.remote_addr
+        if request.headers.get('X-Forwarded-For'):
+            ip = request.headers.get('X-Forwarded-For').split(',')[0].strip()
+            
+        is_blocked = BlockedIP.query.filter_by(ip_address=ip).first()
+        if is_blocked:
+            abort(403, description=f"ERR_ACCESS_DENIED: Your IP address ({ip}) has been permanently blacklisted. Reason: {is_blocked.reason}")
+
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))

@@ -2,7 +2,8 @@ import os
 from datetime import datetime, timedelta
 from flask import Blueprint, render_template, redirect, url_for, session, abort, Response
 from flask_login import login_required, current_user
-from app.models import User, AuditLog
+from app.models import User, AuditLog, BlockedIP
+
 from app.utils import record_activity
 
 views_bp = Blueprint('views', __name__)
@@ -19,10 +20,11 @@ def dashboard():
         session['camera_logged'] = True
 
     all_users = User.query.all() if current_user.is_admin else []
+    blocked_ips = BlockedIP.query.all() if current_user.is_admin else []
     
     cam_url = os.environ.get('CAM_URL', '') 
     
-    return render_template('camera.html', is_admin=current_user.is_admin, all_users=all_users, cam_url=cam_url)
+    return render_template('camera.html', is_admin=current_user.is_admin, all_users=all_users, blocked_ips=blocked_ips, cam_url=cam_url)
 
 @views_bp.route('/get_logs', strict_slashes=False)
 @login_required
@@ -33,7 +35,6 @@ def get_logs():
     logs = AuditLog.query.order_by(AuditLog.id.desc()).limit(50).all()
     lines = []
     for log in logs:
-        # Fallbacks to prevent 500 errors if the DB has null rows
         ts = log.timestamp if log.timestamp else datetime.utcnow()
         ph_time = ts + timedelta(hours=8)
         time_str = ph_time.strftime("%Y-%m-%d %H:%M:%S")
