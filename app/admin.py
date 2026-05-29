@@ -15,11 +15,38 @@ def _generate_temp_password(length=16):
     alphabet = string.ascii_letters + string.digits + string.punctuation
     return ''.join(secrets.choice(alphabet) for _ in range(length))
 
+# Re-use payload checker inside admin inputs for internal defense protection
+def check_admin_payloads():
+    malicious_signatures = ["' or ", '" or ', "1=1", "UNION SELECT", "<script>", "../", "..\\"]
+    for key, value in request.form.items():
+        if value:
+            normalized_val = value.lower()
+            for sig in malicious_signatures:
+                if sig.lower() in normalized_val:
+                    return f"Exploit string profile '{sig}' inside administration field '{key}'"
+    return None
+
+def enforce_ip_ban(reason_str):
+    ip = request.remote_addr
+    if request.headers.get('X-Forwarded-For'):
+        ip = request.headers.get('X-Forwarded-For').split(',')[0].strip()
+    if not BlockedIP.query.filter_by(ip_address=ip).first():
+        new_block = BlockedIP(ip_address=ip, reason=f"Privileged Panel Attack: {reason_str}")
+        db.session.add(new_block)
+        db.session.commit()
+        record_activity(f"FIREWALL AUTO-BAN: IP {ip} dropped for admin panel exploit payload injection", current_user.id)
+
 @admin_bp.route('/admin/manage_users', methods=['POST'])
 @login_required
 def manage_users():
     if not current_user.is_admin:
         abort(403)
+
+    # Inspect Admin Inputs for exploit patterns
+    exploit_found = check_admin_payloads()
+    if exploit_found:
+        enforce_ip_ban(exploit_found)
+        return abort(403, description="CRITICAL SECURITY EXCEPTION: Dynamic Exploit Profile Execution Prevented.")
 
     action = request.form.get('action')
     target_username = request.form.get('target_username')
@@ -87,7 +114,6 @@ def manage_users():
 
     return redirect(url_for('views.dashboard'))
 
-# NEW: Firewall Management Route
 @admin_bp.route('/admin/manage_firewall', methods=['POST'])
 @login_required
 def manage_firewall():
