@@ -1,5 +1,5 @@
 import os
-from datetime import timedelta
+from datetime import datetime, timedelta
 from flask import Blueprint, render_template, redirect, url_for, session, abort, Response
 from flask_login import login_required, current_user
 from app.models import User, AuditLog
@@ -11,7 +11,6 @@ views_bp = Blueprint('views', __name__)
 def index():
     return redirect(url_for('auth.login'))
 
-# FIX: Added strict_slashes and methods to catch any browser weirdness
 @views_bp.route('/dashboard', strict_slashes=False, methods=['GET', 'POST'])
 @login_required
 def dashboard():
@@ -34,12 +33,16 @@ def get_logs():
     logs = AuditLog.query.order_by(AuditLog.id.desc()).limit(50).all()
     lines = []
     for log in logs:
-        ph_time = log.timestamp + timedelta(hours=8)
+        # Fallbacks to prevent 500 errors if the DB has null rows
+        ts = log.timestamp if log.timestamp else datetime.utcnow()
+        ph_time = ts + timedelta(hours=8)
         time_str = ph_time.strftime("%Y-%m-%d %H:%M:%S")
+        
         username = (log.user.username if log.user else "Unknown").replace('<', '&lt;').replace('>', '&gt;')
-        action = log.action.replace('<', '&lt;').replace('>', '&gt;')
-        ip = (log.ip_address or "").replace('<', '&lt;').replace('>', '&gt;')
-        lines.append(f"[{time_str} UTC+8] {username} - {action} ({ip})")
+        action_str = (log.action if log.action else "Unknown Action").replace('<', '&lt;').replace('>', '&gt;')
+        ip = (log.ip_address if log.ip_address else "Unknown IP").replace('<', '&lt;').replace('>', '&gt;')
+        
+        lines.append(f"[{time_str} UTC+8] {username} - {action_str} ({ip})")
 
     output = "\n".join(lines) if lines else "No activity recorded yet."
     return Response(output, mimetype='text/plain')
