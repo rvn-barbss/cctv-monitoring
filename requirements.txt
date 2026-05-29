@@ -11,3 +11,4 @@ pillow>=10.4.0
 Flask-WTF==1.2.1
 Flask-Limiter==3.5.0
 Flask-Talisman==1.1.0
+opencv-python  
