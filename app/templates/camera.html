@@ -248,7 +248,6 @@
             cursor: pointer; display: flex; align-items: center; gap: 8px;
         }
 
-        /* NEW: Search Bar Styling */
         .search-input {
             font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 600;
             color: var(--text-pure); background: #11141a; border: 1px solid var(--border-subtle);
@@ -303,13 +302,13 @@
         .badge.admin-tag { background: rgba(255,255,255,0.05); color: var(--text-pure); border: 1px solid rgba(255,255,255,0.15); margin-right: 5px; }
 
         .strength-wrapper { margin-top: 15px; }
-        .strength-bar { width: 100%; height: 4px; background: rgba(255,255,255,0.03); overflow: hidden; }
+        .strength-bar { width: 100%; height: 4px; background: rgba(255,255,255,0.03); overflow: hidden; border-radius: 2px;}
         #strength-fill { height: 100%; width: 0%; transition: all 0.3s ease; }
         .strength-text { margin-top: 8px; font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--text-muted); }
         
         .pass-rules { margin-top: 15px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; font-weight: 600; }
         .pass-rules .valid { color: #00e676; }
-        .pass-rules .invalid { color: var(--accent-crimson); }
+        .pass-rules .invalid { color: var(--text-muted); } /* Changed from crimson to muted so it doesn't look angry before typing */
 
         @keyframes row-in { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
         .log-table tbody tr.new-row { animation: row-in 0.3s ease both; }
@@ -669,7 +668,6 @@
 
         window.addEventListener('load', () => { showConnecting(); tryPath(0); });
 
-        // NEW: searchQuery variable to hold live filter state
         let allLogs = [], activeDays = 7, activeType = 'all', sortAsc = false, searchQuery = '';
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         const isAdmin = {{ 'true' if is_admin else 'false' }};
@@ -705,7 +703,6 @@
             renderLogs();
         }
 
-        // NEW: Function to capture live input from the search bar
         function handleSearch(val) {
             searchQuery = val.toLowerCase();
             renderLogs();
@@ -732,7 +729,6 @@
                 if (activeType === 'alerts'  && !log.action.includes('REQUESTED') && !log.action.includes('ALERT')) return false;
                 if (activeType === 'passreset' && !log.action.includes('PASSWORD RESET REQUESTED')) return false;
                 
-                // NEW: Search Engine logic compares input against all fields
                 if (searchQuery) {
                     const rowData = `${log.date} ${log.time} ${log.user} ${log.action} ${log.ip}`.toLowerCase();
                     if (!rowData.includes(searchQuery)) return false;
@@ -825,6 +821,64 @@
             if(editModal) {
                 editModal.addEventListener('click', function(e) {
                     if (e.target === this) closeEditModal();
+                });
+            }
+
+            // NEW: PASSWORD STRENGTH CHECKER LOGIC
+            const passwordInput = document.getElementById('password-input');
+            if (passwordInput) {
+                passwordInput.addEventListener('input', function() {
+                    const val = this.value;
+                    let strength = 0;
+                    
+                    const hasLength = val.length >= 8;
+                    const hasUpper = /[A-Z]/.test(val);
+                    const hasNumber = /[0-9]/.test(val);
+                    const hasSpecial = /[^A-Za-z0-9]/.test(val);
+
+                    if (hasLength) strength += 25;
+                    if (hasUpper) strength += 25;
+                    if (hasNumber) strength += 25;
+                    if (hasSpecial) strength += 25;
+
+                    const fill = document.getElementById('strength-fill');
+                    const text = document.getElementById('strength-text');
+                    
+                    document.getElementById('rule-length').className = hasLength ? 'valid' : 'invalid';
+                    document.getElementById('rule-length').innerHTML = hasLength ? '✔ At least 8 characters' : '✖ At least 8 characters';
+                    
+                    document.getElementById('rule-upper').className = hasUpper ? 'valid' : 'invalid';
+                    document.getElementById('rule-upper').innerHTML = hasUpper ? '✔ Uppercase letter' : '✖ Uppercase letter';
+                    
+                    document.getElementById('rule-number').className = hasNumber ? 'valid' : 'invalid';
+                    document.getElementById('rule-number').innerHTML = hasNumber ? '✔ Number' : '✖ Number';
+                    
+                    document.getElementById('rule-special').className = hasSpecial ? 'valid' : 'invalid';
+                    document.getElementById('rule-special').innerHTML = hasSpecial ? '✔ Special character' : '✖ Special character';
+
+                    fill.style.width = strength + '%';
+
+                    if (val.length === 0) {
+                        fill.style.background = 'transparent';
+                        text.textContent = 'PASSWORD STRENGTH';
+                        text.style.color = 'var(--text-muted)';
+                    } else if (strength <= 25) {
+                        fill.style.background = 'var(--accent-crimson)';
+                        text.textContent = 'WEAK';
+                        text.style.color = 'var(--accent-crimson)';
+                    } else if (strength <= 50) {
+                        fill.style.background = 'var(--accent-amber)';
+                        text.textContent = 'FAIR';
+                        text.style.color = 'var(--accent-amber)';
+                    } else if (strength <= 75) {
+                        fill.style.background = '#00bfff';
+                        text.textContent = 'GOOD';
+                        text.style.color = '#00bfff';
+                    } else {
+                        fill.style.background = '#00e676';
+                        text.textContent = 'STRONG';
+                        text.style.color = '#00e676';
+                    }
                 });
             }
         });
