@@ -1,961 +1,873 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Secure Web-Based Surveillance Access System</title>
-  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg-root:      #04111c;
-      --bg-card:      #0a1a26;
-      --bg-input:     #0f2030;
-      --border-dim:   #1a3a50;
-      --border-glow:  #00e5ff;
-      --accent-cyan:  #00e5ff;
-      --accent-blue:  #1a8fff;
-      --accent-red:   #cc1133;
-      --accent-amber: #ffb300;
-      --accent-green: #00e676;
-      --text-primary: #cce8f0;
-      --text-muted:   #3d6878;
-      --text-dim:     #1e3d50;
-    }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'Share Tech Mono', monospace;
-      background: var(--bg-root);
-      color: var(--text-primary);
-      min-height: 100vh;
-      overflow-x: hidden;
-      position: relative;
-    }
-
-    body::before {
-      content: '';
-      position: fixed; inset: 0;
-      background-image:
-        linear-gradient(rgba(0,180,220,0.07) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,180,220,0.07) 1px, transparent 1px);
-      background-size: 38px 38px;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    body::after {
-      content: '';
-      position: fixed; inset: 0;
-      background:
-        radial-gradient(ellipse 55% 45% at 5% 50%,  rgba(0,80,120,0.35) 0%, transparent 70%),
-        radial-gradient(ellipse 50% 40% at 95% 50%, rgba(0,60,100,0.3)  0%, transparent 70%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .navbar {
-      position: relative; z-index: 10;
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 0 36px;
-      height: 62px;
-      background: rgba(8,20,32,0.92);
-      border-bottom: 1px solid var(--border-dim);
-      backdrop-filter: blur(6px);
-    }
-
-    .navbar::after {
-      content: '';
-      position: absolute; bottom: 0; left: 0; right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent 5%, var(--accent-cyan) 50%, transparent 95%);
-      opacity: 0.5;
-    }
-
-    .nav-brand { display: flex; flex-direction: column; gap: 2px; }
-
-    .nav-title {
-      font-family: 'Orbitron', monospace;
-      font-size: 15px; font-weight: 700;
-      letter-spacing: 2px; color: #fff;
-    }
-
-    .nav-subtitle {
-      font-size: 10px; letter-spacing: 4px;
-      color: var(--text-muted); text-transform: uppercase;
-    }
-
-    .nav-right { display: flex; align-items: center; gap: 20px; }
-
-    .sys-badge {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 11px; letter-spacing: 2px; color: var(--accent-green);
-    }
-
-    .sys-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--accent-green);
-      box-shadow: 0 0 8px var(--accent-green);
-      animation: blink 2s ease-in-out infinite;
-    }
-
-    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.25;} }
-
-    .logout-btn {
-      font-family: 'Orbitron', monospace;
-      font-size: 11px; font-weight: 700; letter-spacing: 2px;
-      color: #fff; text-decoration: none;
-      padding: 9px 22px; border-radius: 4px;
-      background: var(--accent-blue); border: none;
-      transition: filter 0.2s, box-shadow 0.2s;
-      box-shadow: 0 0 18px rgba(26,143,255,0.35);
-    }
-
-    .logout-btn:hover { filter: brightness(1.15); box-shadow: 0 0 28px rgba(26,143,255,0.55); }
-
-    .main {
-      position: relative; z-index: 1;
-      max-width: 1380px; margin: 32px auto; padding: 0 32px;
-    }
-
-    .tab-bar { display: flex; gap: 4px; margin-bottom: 24px; }
-
-    .tab-link {
-      font-family: 'Orbitron', monospace;
-      font-size: 11px; font-weight: 700; letter-spacing: 3px;
-      color: var(--text-muted);
-      background: rgba(10,26,38,0.7);
-      border: 1px solid var(--border-dim);
-      border-radius: 6px 6px 0 0;
-      padding: 12px 28px; cursor: pointer;
-      transition: all 0.2s; border-bottom: none;
-    }
-
-    .tab-link.active {
-      color: var(--accent-cyan); background: var(--bg-card);
-      border-color: var(--border-dim);
-      border-top: 2px solid var(--accent-cyan);
-      box-shadow: 0 0 14px rgba(0,229,255,0.1);
-    }
-
-    .tab-link:hover:not(.active) { color: var(--text-primary); border-color: rgba(0,229,255,0.2); }
-
-    .card {
-      background: var(--bg-card); border: 1px solid var(--border-dim);
-      border-radius: 0 8px 8px 8px; padding: 28px;
-      position: relative; overflow: hidden;
-    }
-
-    .card::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue), transparent);
-      opacity: 0.5;
-    }
-
-    .tab-content { display: none; }
-
-    .camera-layout { display: grid; grid-template-columns: 1fr 270px; gap: 22px; }
-
-    .section-label {
-      font-size: 10px; letter-spacing: 4px; color: var(--text-muted);
-      margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
-    }
-
-    .section-label::before {
-      content: ''; width: 3px; height: 12px;
-      background: var(--accent-cyan); border-radius: 2px;
-      display: block; box-shadow: 0 0 8px var(--accent-cyan);
-    }
-
-    .video-box {
-      background: #000; height: 475px;
-      border: 1px solid var(--border-dim); border-radius: 6px;
-      display: flex; flex-direction: column;
-      justify-content: center; align-items: center;
-      position: relative; overflow: hidden;
-    }
-
-    .video-box::after {
-      content: ''; position: absolute; inset: 0;
-      background: repeating-linear-gradient(
-        0deg, transparent, transparent 3px,
-        rgba(0,229,255,0.012) 3px, rgba(0,229,255,0.012) 4px
-      );
-      pointer-events: none; z-index: 2;
-    }
-
-    .cam-corner {
-      position: absolute; width: 18px; height: 18px;
-      border-color: var(--accent-cyan); border-style: solid; opacity: 0.6; z-index: 3;
-    }
-    .cam-corner.tl { top:8px; left:8px;   border-width:2px 0 0 2px; }
-    .cam-corner.tr { top:8px; right:8px;  border-width:2px 2px 0 0; }
-    .cam-corner.bl { bottom:8px; left:8px;  border-width:0 0 2px 2px; }
-    .cam-corner.br { bottom:8px; right:8px; border-width:0 2px 2px 0; }
-
-    .cam-badge {
-      position: absolute; top: 14px; right: 36px;
-      display: flex; align-items: center; gap: 6px;
-      font-size: 10px; letter-spacing: 2px; z-index: 3;
-    }
-
-    .cam-badge.live-badge     { color: var(--accent-green); }
-    .cam-badge.searching-badge { color: var(--accent-amber); }
-
-    .pulse { width: 7px; height: 7px; border-radius: 50%; animation: blink 1.8s ease-in-out infinite; }
-    .pulse.green { background: var(--accent-green); box-shadow: 0 0 10px var(--accent-green); }
-    .pulse.amber { background: var(--accent-amber); box-shadow: 0 0 10px var(--accent-amber); }
-
-    #cam-feed {
-      position: absolute; inset: 0;
-      width: 100%; height: 100%;
-      object-fit: cover; 
-      border-radius: 6px;
-      z-index: 1; display: block;
-    }
-
-    .cam-overlay {
-      position: absolute; inset: 0;
-      display: flex; flex-direction: column;
-      justify-content: center; align-items: center;
-      gap: 16px; z-index: 1;
-    }
-
-    .search-ring {
-      width: 56px; height: 56px; border-radius: 50%;
-      border: 2px solid var(--border-dim);
-      border-top-color: var(--accent-cyan);
-      animation: spin 1.6s linear infinite; position: relative;
-    }
-
-    .search-ring::before {
-      content: ''; position: absolute; inset: 7px; border-radius: 50%;
-      border: 1px solid var(--border-dim);
-      border-top-color: var(--accent-blue);
-      animation: spin 2.8s linear infinite reverse;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .cam-ip { font-size: 11px; letter-spacing: 3px; color: var(--text-muted); }
-    .cam-error-msg { font-size: 13px; letter-spacing: 2px; color: #ff4466; }
-    .cam-error-sub { font-size: 11px; color: var(--text-muted); }
-
-    .retry-btn {
-      margin-top: 6px;
-      font-family: 'Orbitron', monospace;
-      font-size: 10px; letter-spacing: 2px; color: var(--accent-cyan);
-      background: rgba(0,229,255,0.08);
-      border: 1px solid rgba(0,229,255,0.3);
-      border-radius: 4px; padding: 8px 20px;
-      cursor: pointer; transition: all 0.2s;
-    }
-
-    .retry-btn:hover { background: rgba(0,229,255,0.18); box-shadow: 0 0 12px rgba(0,229,255,0.2); }
-
-    .intel-box {
-      background: rgba(8,18,28,0.8);
-      border: 1px solid var(--border-dim);
-      border-radius: 8px; padding: 22px;
-    }
-
-    .intel-title {
-      font-family: 'Orbitron', monospace;
-      font-size: 10px; letter-spacing: 3px; color: var(--accent-cyan);
-      margin-bottom: 18px; padding-bottom: 12px;
-      border-bottom: 1px solid var(--border-dim);
-    }
-
-    .intel-row { padding: 13px 0; border-bottom: 1px solid rgba(26,58,80,0.4); }
-
-    .intel-lbl {
-      font-size: 9px; letter-spacing: 2px; color: var(--text-dim);
-      margin-bottom: 5px; text-transform: uppercase;
-    }
-
-    .intel-val { font-size: 13px; color: var(--text-primary); }
-    .intel-val.live  { color: var(--accent-green); text-shadow: 0 0 10px rgba(0,230,118,0.4); }
-    .intel-val.user  { color: var(--accent-blue); }
-    .intel-val.small { font-size: 11px; color: var(--text-muted); }
-    .intel-val.warn  { font-size: 11px; color: var(--accent-amber); }
-
-    .logs-title {
-      font-family: 'Orbitron', monospace;
-      font-size: 13px; letter-spacing: 2px; color: var(--text-primary);
-      margin-bottom: 22px; display: flex; align-items: center; gap: 12px;
-    }
-
-    .logs-title::before {
-      content: ''; width: 3px; height: 18px;
-      background: var(--accent-cyan); border-radius: 2px;
-      box-shadow: 0 0 10px var(--accent-cyan);
-    }
-
-    .log-filters {
-      display: flex; align-items: center;
-      gap: 6px; flex-wrap: wrap; margin-bottom: 20px;
-    }
-
-    .filter-label { font-size: 10px; letter-spacing: 2px; color: var(--text-dim); margin-right: 4px; }
-
-    .filter-btn {
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 11px; letter-spacing: 1px; color: var(--text-muted);
-      background: rgba(10,26,38,0.8); border: 1px solid var(--border-dim);
-      border-radius: 4px; padding: 7px 16px; cursor: pointer; transition: all 0.15s;
-    }
-
-    .filter-btn:hover { color: var(--accent-cyan); border-color: rgba(0,229,255,0.3); }
-
-    .filter-btn.active {
-      background: rgba(0,229,255,0.12); color: var(--accent-cyan);
-      border-color: rgba(0,229,255,0.5); box-shadow: 0 0 10px rgba(0,229,255,0.15);
-    }
-    
-    .filter-btn.alert-btn.active {
-      background: rgba(255,179,0,0.15); color: var(--accent-amber);
-      border-color: var(--accent-amber); box-shadow: 0 0 10px rgba(255,179,0,0.2);
-    }
-
-    .filter-sep { width: 1px; height: 22px; background: var(--border-dim); margin: 0 6px; }
-
-    .sort-btn {
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 11px; color: var(--text-muted);
-      background: rgba(10,26,38,0.8); border: 1px solid var(--border-dim);
-      border-radius: 4px; padding: 7px 16px; cursor: pointer;
-      display: flex; align-items: center; gap: 7px; transition: all 0.15s;
-    }
-
-    .sort-btn:hover { color: var(--accent-cyan); border-color: rgba(0,229,255,0.3); }
-
-    .log-count { margin-left: auto; font-size: 11px; color: var(--text-dim); }
-    .log-table-container { overflow-x: auto; }
-
-    .log-table { width: 100%; border-collapse: collapse; font-family: 'Share Tech Mono', monospace; }
-    .log-table thead tr { border-bottom: 1px solid var(--border-dim); }
-
-    .log-table th {
-      font-family: 'Orbitron', monospace;
-      font-size: 9px; letter-spacing: 3px; color: var(--accent-cyan);
-      padding: 14px 16px; text-align: left; font-weight: 400;
-    }
-
-    .log-table td {
-      padding: 11px 16px; font-size: 12px; color: var(--text-muted);
-      border-bottom: 1px solid rgba(26,58,80,0.25);
-    }
-
-    .log-table tr:hover td { background: rgba(0,229,255,0.03); color: var(--text-primary); }
-
-    td.success { color: var(--accent-green); }
-    td.failed  { color: #ff4466; }
-    td.access  { color: var(--accent-cyan); }
-    td.alert   { color: var(--accent-amber); font-weight: bold; }
-    td.user-col { color: var(--accent-blue); }
-
-    @keyframes row-in { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
-    .log-table tbody tr.new-row { animation: row-in 0.3s ease both; }
-
-    .admin-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 30px;
-    }
-    
-    .admin-card {
-      background: rgba(10,26,38,0.5);
-      border: 1px solid var(--border-dim);
-      border-radius: 6px;
-      padding: 24px;
-    }
-
-    .admin-input-group { margin-bottom: 16px; }
-    .admin-input-group label {
-      display: block; font-size: 10px; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 8px;
-    }
-    
-    .admin-input {
-      width: 100%; padding: 10px;
-      background: var(--bg-input); border: 1px solid var(--border-dim);
-      border-radius: 4px; color: var(--text-primary); font-family: 'Share Tech Mono', monospace;
-    }
-    
-    .admin-input:focus { outline: none; border-color: var(--accent-cyan); }
-    
-    .admin-btn {
-      font-family: 'Orbitron', monospace;
-      font-size: 11px; letter-spacing: 2px; color: #fff;
-      background: var(--accent-blue); border: none; border-radius: 4px;
-      padding: 10px 20px; cursor: pointer; transition: all 0.2s; width: 100%;
-    }
-    
-    .admin-btn:hover { filter: brightness(1.2); box-shadow: 0 0 15px rgba(26,143,255,0.4); }
-    .admin-btn.danger { background: var(--accent-red); }
-    .admin-btn.danger:hover { box-shadow: 0 0 15px rgba(204,17,51,0.4); }
-    .admin-btn.warn { background: var(--accent-amber); color: #000; font-weight: bold;}
-    .admin-btn.warn:hover { box-shadow: 0 0 15px rgba(255,179,0,0.4); }
-    .admin-btn.dl { background: var(--accent-green); margin-bottom: 20px; color: #000; font-weight: 900;}
-    .admin-btn.dl:hover { box-shadow: 0 0 15px rgba(0,230,118,0.4); }
-
-    .user-list { list-style: none; margin-top: 15px; }
-    .user-list li {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 10px; border-bottom: 1px solid var(--border-dim);
-      font-size: 12px;
-    }
-    .user-list li:last-child { border-bottom: none; }
-    .badge { padding: 3px 8px; border-radius: 3px; font-size: 9px; letter-spacing: 1px; }
-    .badge.locked { background: rgba(204,17,51,0.2); color: var(--accent-red); border: 1px solid var(--accent-red); }
-    .badge.ok { background: rgba(0,230,118,0.1); color: var(--accent-green); border: 1px solid var(--accent-green); }
-    .badge.admin-tag { background: rgba(0,229,255,0.1); color: var(--accent-cyan); border: 1px solid var(--accent-cyan); }
-
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SECURIX | Advanced Control Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #060709;
+            --panel-graphite: #090b0e;
+            --accent-crimson: #ff1e27;
+            --accent-amber: #ff9100;
+            --text-pure: #ffffff;
+            --text-muted: #6c7a89;
+            --input-bg: #141821;
+            --border-subtle: rgba(255, 255, 255, 0.04);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-pure);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* --- BACKGROUND ENVIRONMENT CONTINUITY --- */
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.01) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.01) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .scan-line {
+            position: fixed; top: 0; left: 0; width: 100%; height: 3px;
+            background: linear-gradient(90deg, transparent, rgba(255, 30, 39, 0.2), transparent);
+            box-shadow: 0 0 12px rgba(255, 30, 39, 0.3);
+            opacity: 0.4;
+            animation: scanVertical 10s linear infinite;
+            z-index: 999;
+            pointer-events: none;
+        }
+        @keyframes scanVertical {
+            0% { top: -10px; }
+            100% { top: 105%; }
+        }
+
+        /* --- STYLISH NAVIGATION BAR --- */
+        .navbar {
+            position: relative; z-index: 10;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 40px;
+            height: 70px;
+            background: var(--panel-graphite);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .nav-brand { display: flex; flex-direction: column; }
+
+        .nav-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 20px; font-weight: 900;
+            letter-spacing: 3px; color: var(--text-pure);
+        }
+
+        .nav-subtitle {
+            font-size: 11px; letter-spacing: 2px;
+            color: var(--text-muted); text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .nav-right { display: flex; align-items: center; gap: 25px; }
+
+        .sys-badge {
+            display: flex; align-items: center; gap: 10px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #00e676;
+        }
+
+        .sys-dot {
+            width: 8px; height: 8px; transform: rotate(45deg);
+            background: #00e676;
+            box-shadow: 0 0 8px #00e676;
+            animation: blink 2s ease-in-out infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+        .logout-btn {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px; font-weight: 700; letter-spacing: 2px;
+            color: var(--text-pure); text-decoration: none;
+            padding: 10px 24px;
+            background: transparent; border: 1px solid var(--accent-crimson);
+            transition: all 0.4s ease;
+        }
+        .logout-btn:hover {
+            box-shadow: 0 0 20px rgba(255, 30, 39, 0.3), inset 0 -50px 0 0 var(--accent-crimson);
+        }
+
+        /* --- CONTROL INTERFACE PANELS --- */
+        .main {
+            position: relative; z-index: 1;
+            max-width: 1400px; margin: 40px auto; padding: 0 40px;
+        }
+
+        .tab-bar { display: flex; gap: 6px; margin-bottom: 24px; }
+
+        .tab-link {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px; font-weight: 700; letter-spacing: 2px;
+            color: var(--text-muted);
+            background: rgba(9, 11, 14, 0.6);
+            border: 1px solid var(--border-subtle);
+            padding: 14px 28px; cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab-link.active {
+            color: var(--text-pure); background: var(--panel-graphite);
+            border-color: var(--border-subtle);
+            border-top: 3px solid var(--accent-crimson);
+        }
+        .tab-link:hover:not(.active) { color: var(--text-pure); border-color: rgba(255, 30, 39, 0.2); }
+
+        .card {
+            background: var(--panel-graphite); border: 1px solid var(--border-subtle);
+            padding: 35px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+            position: relative;
+        }
+
+        .tab-content { display: none; }
+
+        /* --- MONITORING STREAM VIEW --- */
+        .camera-layout { display: grid; grid-template-columns: 1fr 310px; gap: 30px; }
+
+        .section-label {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--text-pure);
+            margin-bottom: 15px; display: flex; align-items: center; gap: 10px;
+        }
+
+        .section-label::before {
+            content: ''; width: 8px; height: 8px; background: var(--accent-crimson);
+            transform: rotate(45deg); display: block; box-shadow: 0 0 8px var(--accent-crimson);
+        }
+
+        .video-box {
+            background: #020304; height: 500px;
+            border: 1px solid var(--border-subtle);
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            position: relative; overflow: hidden;
+        }
+
+        .video-box::after {
+            content: ''; position: absolute; inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,30,39,0.01) 3px, rgba(255,30,39,0.01) 4px);
+            pointer-events: none; z-index: 2;
+        }
+
+        .cam-corner {
+            position: absolute; width: 16px; height: 16px;
+            border-color: var(--accent-crimson); border-style: solid; opacity: 0.7; z-index: 3;
+        }
+        .cam-corner.tl { top:15px; left:15px;  border-width:2px 0 0 2px; }
+        .cam-corner.tr { top:15px; right:15px; border-width:2px 2px 0 0; }
+        .cam-corner.bl { bottom:15px; left:15px;  border-width:0 0 2px 2px; }
+        .cam-corner.br { bottom:15px; right:15px; border-width:0 2px 2px 0; }
+
+        .cam-badge {
+            position: absolute; top: 18px; right: 20px;
+            display: flex; align-items: center; gap: 8px;
+            font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 2px; z-index: 3;
+        }
+        .cam-badge.live-badge     { color: #00e676; }
+        .cam-badge.searching-badge { color: var(--accent-amber); }
+
+        .pulse { width: 7px; height: 7px; transform: rotate(45deg); animation: blink 1.5s ease-in-out infinite; }
+        .pulse.green { background: #00e676; box-shadow: 0 0 10px #00e676; }
+        .pulse.amber { background: var(--accent-amber); box-shadow: 0 0 10px var(--accent-amber); }
+
+        #cam-feed {
+            position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; display: block;
+        }
+
+        .cam-overlay {
+            position: absolute; inset: 0; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; gap: 20px; z-index: 1; background: #040507;
+        }
+
+        .search-ring {
+            width: 50px; height: 50px; border: 2px solid rgba(255,255,255,0.03);
+            border-top-color: var(--accent-crimson); animation: spin 1.5s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .cam-ip { font-family: 'Orbitron', sans-serif; font-size: 12px; letter-spacing: 2px; color: var(--text-muted); }
+        .cam-error-msg { font-family: 'Orbitron', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: 2px; color: var(--accent-crimson); }
+        .cam-error-sub { font-size: 13px; color: var(--text-muted); }
+
+        .retry-btn {
+            margin-top: 10px; font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700;
+            letter-spacing: 2px; color: var(--text-pure); background: transparent;
+            border: 1px solid var(--accent-crimson); padding: 10px 22px; cursor: pointer; transition: all 0.3s;
+        }
+        .retry-btn:hover { background: var(--accent-crimson); box-shadow: 0 0 15px rgba(255, 30, 39, 0.4); }
+
+        /* --- TACTICAL MATRIX SYSTEM STRUCTURES --- */
+        .intel-box { background: #11141a; border: 1px solid var(--border-subtle); padding: 25px; }
+        .intel-title { font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--accent-crimson); margin-bottom: 20px; }
+        .intel-row { padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .intel-row:last-child { border-bottom: none; }
+        .intel-lbl { font-size: 11px; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; font-weight: 600; }
+        .intel-val { font-size: 15px; font-weight: 600; color: var(--text-pure); }
+        .intel-val.live { color: #00e676; }
+        .intel-val.warn { color: var(--accent-amber); }
+
+        /* --- DATABASE AUDIT TABLES --- */
+        .logs-title {
+            font-family: 'Orbitron', sans-serif; font-size: 15px; font-weight: 900;
+            letter-spacing: 2px; color: var(--text-pure); margin-bottom: 25px;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .logs-title::before {
+            content: ''; width: 4px; height: 16px; background: var(--accent-crimson); box-shadow: 0 0 10px var(--accent-crimson);
+        }
+
+        .log-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+        .filter-label { font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: 1px; color: var(--text-muted); font-weight: 700; margin-right: 5px; }
+        
+        .filter-btn {
+            font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 1px;
+            color: var(--text-muted); background: #11141a; border: 1px solid var(--border-subtle);
+            padding: 8px 18px; cursor: pointer; transition: all 0.2s;
+        }
+        .filter-btn:hover { color: var(--text-pure); border-color: rgba(255,255,255,0.1); }
+        .filter-btn.active { background: rgba(255, 255, 255, 0.04); color: var(--text-pure); border-color: rgba(255, 255, 255, 0.15); }
+        .filter-btn.alert-btn.active { border-color: var(--accent-amber); color: var(--accent-amber); background: rgba(255,145,0,0.05); }
+        .filter-sep { width: 1px; height: 20px; background: rgba(255,255,255,0.06); margin: 0 8px; }
+
+        .sort-btn {
+            font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 600; color: var(--text-pure);
+            background: #11141a; border: 1px solid var(--border-subtle); padding: 8px 18px;
+            cursor: pointer; display: flex; align-items: center; gap: 8px;
+        }
+
+        .log-table { width: 100%; border-collapse: collapse; }
+        .log-table thead tr { border-bottom: 1px solid rgba(255,255,255,0.05); background: #0d0f14; }
+        .log-table th { font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--text-muted); padding: 16px 20px; text-align: left; }
+        .log-table td { padding: 14px 20px; font-size: 14px; color: var(--text-pure); font-weight: 500; border-bottom: 1px solid rgba(255,255,255,0.02); }
+        .log-table tr:hover td { background: rgba(255,255,255,0.01); }
+
+        td.success { color: #00e676; }
+        td.failed  { color: var(--accent-crimson); }
+        td.access  { color: var(--text-pure); font-weight: 600; }
+        td.alert   { color: var(--accent-amber); font-weight: 700; }
+        td.user-col { color: var(--text-pure); font-family: 'Orbitron', sans-serif; font-size: 12px; }
+
+        /* --- CONTROL MATRIX PANEL & FIELDS --- */
+        .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .admin-card { background: #11141a; border: 1px solid var(--border-subtle); padding: 30px; }
+        .admin-input-group { margin-bottom: 20px; }
+        .admin-input-group label { display: block; font-size: 12px; font-weight: 600; letter-spacing: 2px; color: var(--text-pure); margin-bottom: 10px; text-transform: uppercase; }
+        
+        .admin-input {
+            width: 100%; padding: 14px 18px; background: var(--input-bg); border: 1px solid var(--border-subtle);
+            border-left: 3px solid var(--accent-crimson); color: var(--text-pure); font-family: 'Rajdhani', sans-serif; font-size: 15px; font-weight: 600; outline: none;
+        }
+        .admin-input:focus { border-color: rgba(255, 30, 39, 0.3); border-left-color: var(--accent-crimson); }
+        select.admin-input { appearance: none; background-image: url("data:image/svg+xml;utf8,<svg fill='white' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>"); background-repeat: no-repeat; background-position: right 15px center; }
+
+        .admin-btn {
+            font-family: 'Orbitron', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 2px; color: var(--text-pure);
+            background: transparent; border: 1px solid var(--accent-crimson); padding: 14px; cursor: pointer; transition: all 0.3s; width: 100%; text-transform: uppercase;
+        }
+        .admin-btn:hover { box-shadow: 0 0 20px rgba(255, 30, 39, 0.3), inset 0 -60px 0 0 var(--accent-crimson); }
+        .admin-btn.danger { border-color: var(--accent-crimson); color: var(--text-pure); }
+        .admin-btn.danger:hover { background: var(--accent-crimson); box-shadow: 0 0 20px rgba(255,30,39,0.3); }
+        .admin-btn.warn { border-color: var(--accent-amber); color: var(--accent-amber); }
+        .admin-btn.warn:hover { background: var(--accent-amber); color: #000; box-shadow: 0 0 20px rgba(255,145,0,0.3); }
+        .admin-btn.dl { border-color: var(--accent-amber); color: var(--accent-amber); font-family: 'Orbitron', sans-serif; font-weight: 700; margin-bottom: 25px; width: auto; display: inline-block; padding: 12px 25px; }
+        .admin-btn.dl:hover { background: var(--accent-amber); color: #000; box-shadow: 0 0 20px rgba(255,145,0,0.3); }
+
+        .user-list { list-style: none; }
+        .user-list li { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 15px; font-weight: 600; }
+        .user-list li:last-child { border-bottom: none; }
+        
+        .badge { padding: 4px 10px; font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 1px; }
+        .badge.locked { background: rgba(255,30,39,0.08); color: var(--accent-crimson); border: 1px solid rgba(255,30,39,0.3); }
+        .badge.ok { background: rgba(0,230,118,0.08); color: #00e676; border: 1px solid rgba(0,230,118,0.3); }
+        .badge.admin-tag { background: rgba(255,255,255,0.05); color: var(--text-pure); border: 1px solid rgba(255,255,255,0.15); margin-right: 5px; }
+
+        .strength-wrapper { margin-top: 15px; }
+        .strength-bar { width: 100%; height: 4px; background: rgba(255,255,255,0.03); overflow: hidden; }
+        #strength-fill { height: 100%; width: 0%; transition: all 0.3s ease; }
+        .strength-text { margin-top: 8px; font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--text-muted); }
+        
+        .pass-rules { margin-top: 15px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; font-weight: 600; }
+        .pass-rules .valid { color: #00e676; }
+        .pass-rules .invalid { color: var(--accent-crimson); }
+    </style>
 </head>
 <body>
 
-  <nav class="navbar">
-    <div class="nav-brand">
-      <div class="nav-title">CCTV SYSTEM</div>
-      <div class="nav-subtitle">Advanced CCTV Monitoring Interface</div>
-    </div>
-    <div class="nav-right">
-      <div class="sys-badge">
-        <span class="sys-dot"></span>
-        SYSTEM ONLINE
-      </div>
-      <a href="/logout" class="logout-btn">LOGOUT</a>
-    </div>
-  </nav>
+    <div class="scan-line"></div>
 
-  <div class="main">
-
-    <div class="tab-bar">
-      <button class="tab-link active" onclick="openTab(event,'Camera')">CAMERA FEED</button>
-      
-      {% if is_admin %}
-      <button class="tab-link" onclick="openTab(event,'Logs')">LOGS</button>
-      <button class="tab-link" onclick="openTab(event,'Admin')">ADMIN SETTINGS</button>
-      {% endif %}
-    </div>
-
-    <div id="Camera" class="tab-content card" style="display:block;">
-      <div class="camera-layout">
-        <div>
-          <div class="section-label" id="feed-label">NODE · CONNECTING TO STREAM</div>
-          <div class="video-box">
-            <div class="cam-corner tl"></div>
-            <div class="cam-corner tr"></div>
-            <div class="cam-corner bl"></div>
-            <div class="cam-corner br"></div>
-
-            <div class="cam-badge live-badge" id="live-badge" style="display:none;">
-              <div class="pulse green"></div>LIVE
+    <nav class="navbar">
+        <div class="nav-brand">
+            <div class="nav-title">SECURIX</div>
+            <div class="nav-subtitle">Advanced CCTV Monitoring Interface</div>
+        </div>
+        <div class="nav-right">
+            <div class="sys-badge">
+                <span class="sys-dot"></span>
+                SYSTEM ONLINE
             </div>
-            <div class="cam-badge searching-badge" id="searching-badge">
-              <div class="pulse amber"></div>CONNECTING
-            </div>
+            <a href="/logout" class="logout-btn">LOGOUT</a>
+        </div>
+    </nav>
 
-            <img id="cam-feed" style="display:none;" alt="Camera Feed" />
-
-            <div class="cam-overlay" id="connecting-overlay">
-              <div class="search-ring"></div>
-              <div class="cam-ip" id="cam-ip-label">CONNECTING TO SECURE TUNNEL</div>
-            </div>
-
-            <div class="cam-overlay" id="error-overlay" style="display:none;">
-              <div class="cam-error-msg">⚠ STREAM UNAVAILABLE</div>
-              <div class="cam-error-sub" id="error-detail">Cannot reach tunnel connection endpoint</div>
-              <button class="retry-btn" onclick="retryFeed()">↺ RETRY CONNECTION</button>
-            </div>
-          </div>
+    <div class="main">
+        <div class="tab-bar">
+            <button class="tab-link active" onclick="openTab(event,'Camera')">CAMERA FEED</button>
+            
+            {% if is_admin %}
+            <button class="tab-link" onclick="openTab(event,'Logs')">LOGS</button>
+            <button class="tab-link" onclick="openTab(event,'Admin')">ADMIN SETTINGS</button>
+            {% endif %}
         </div>
 
-        <div>
-          <div class="section-label">NETWORK INTEL</div>
-          <div class="intel-box">
-            <div class="intel-title">// SYSTEM STATUS</div>
-            <div class="intel-row">
-              <div class="intel-lbl">Connection</div>
-              <div class="intel-val live" id="conn-status">● CONNECTING...</div>
-            </div>
-            <div class="intel-row">
-              <div class="intel-lbl">Database</div>
-              <div class="intel-val small">PostgreSQL (Cloud)</div>
-            </div>
-            <div class="intel-row">
-              <div class="intel-lbl">Target Host</div>
-              <div class="intel-val small">trycloudflare.com</div>
-            </div>
-            <div class="intel-row">
-              <div class="intel-lbl">Stream Path</div>
-              <div class="intel-val warn" id="stream-path-display">Auto-detecting...</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+        <div id="Camera" class="tab-content card" style="display:block;">
+            <div class="camera-layout">
+                <div>
+                    <div class="section-label" id="feed-label">NODE · CONNECTING TO STREAM</div>
+                    <div class="video-box">
+                        <div class="cam-corner tl"></div>
+                        <div class="cam-corner tr"></div>
+                        <div class="cam-corner bl"></div>
+                        <div class="cam-corner br"></div>
 
-    {% if is_admin %}
-    <div id="Logs" class="tab-content card">
-      <div class="logs-title">USER ACTIVITY &amp; ACCESS HISTORY</div>
-      <div id="log-summary" style="display:flex; gap:24px; margin-bottom:18px; flex-wrap:wrap;">
-        <span style="font-size:11px; letter-spacing:2px; color:var(--text-muted);">TOTAL: <span id="sum-total" style="color:var(--text-primary);">0</span></span>
-        <span style="font-size:11px; letter-spacing:2px; color:var(--text-muted);">LOGINS: <span id="sum-logins" style="color:var(--accent-green);">0</span></span>
-        <span style="font-size:11px; letter-spacing:2px; color:var(--text-muted);">FAILED: <span id="sum-failed" style="color:#ff4466;">0</span></span>
-        <span style="font-size:11px; letter-spacing:2px; color:var(--text-muted);">PASSWORD RESETS: <span id="sum-resets" style="color:var(--accent-amber);">0</span></span>
-        <span style="font-size:11px; letter-spacing:2px; color:var(--text-muted);">ADMIN ACTIONS: <span id="sum-admin" style="color:var(--accent-cyan);">0</span></span>
-      </div>
-      <div class="log-filters">
-        <span class="filter-label">PERIOD:</span>
-        <button class="filter-btn active" onclick="setFilter(this,7)">Last 7 Days</button>
-        <button class="filter-btn" onclick="setFilter(this,30)">Last 30 Days</button>
-        <button class="filter-btn" onclick="setFilter(this,0)">All Time</button>
-        <div class="filter-sep"></div>
-        <span class="filter-label">TYPE:</span>
-        <button class="filter-btn active" onclick="setType(this,'all')">All</button>
-        <button class="filter-btn alert-btn" onclick="setType(this,'alerts')">Alerts & Requests</button>
-        <button class="filter-btn" onclick="setType(this,'success')">Logins</button>
-        <button class="filter-btn" onclick="setType(this,'failed')">Failed</button>
-        <button class="filter-btn" onclick="setType(this,'passreset')">Password Resets</button>
-        <div class="filter-sep"></div>
-        <span class="filter-label">SORT:</span>
-        <button class="sort-btn" id="sort-btn" onclick="toggleSort()">
-          <span id="sort-label">Newest First</span>
-          <span id="sort-arrow">↓</span>
-        </button>
-        <span class="log-count" id="log-count"></span>
-      </div>
-      <div class="log-table-container">
-        <table class="log-table">
-          <thead>
-            <tr>
-              <th>Date</th><th>Time</th><th>User</th><th>Action</th><th>IP Address</th>
-            </tr>
-          </thead>
-          <tbody id="log-body">
-            <tr><td colspan="5" style="color:var(--text-dim);">Loading logs...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    
-    <div id="Admin" class="tab-content card">
-      
-      <a href="/admin/export_logs" class="admin-btn dl" style="text-decoration:none; display:inline-block; width:auto;">⬇ DOWNLOAD SECURE AUDIT LOGS (CSV)</a>
-      
-      <div class="admin-grid">
+                        <div class="cam-badge live-badge" id="live-badge" style="display:none;">
+                            <div class="pulse green"></div>LIVE
+                        </div>
+                        <div class="cam-badge searching-badge" id="searching-badge">
+                            <div class="pulse amber"></div>CONNECTING
+                        </div>
+
+                        <img id="cam-feed" style="display:none;" alt="Camera Feed" />
+
+                        <div class="cam-overlay" id="connecting-overlay">
+                            <div class="search-ring"></div>
+                            <div class="cam-ip" id="cam-ip-label">CONNECTING TO SECURE TUNNEL</div>
+                        </div>
+
+                        <div class="cam-overlay" id="error-overlay" style="display:none;">
+                            <div class="cam-error-msg">⚠️ STREAM UNAVAILABLE</div>
+                            <div class="cam-error-sub" id="error-detail">Cannot reach tunnel connection endpoint</div>
+                            <button class="retry-btn" onclick="retryFeed()">↺ RETRY CONNECTION</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="section-label">NETWORK INTEL</div>
+                    <div class="intel-box">
+                        <div class="intel-title">// SYSTEM STATUS</div>
+                        <div class="intel-row">
+                            <div class="intel-lbl">Connection</div>
+                            <div class="intel-val live" id="conn-status">● CONNECTING...</div>
+                        </div>
+                        <div class="intel-row">
+                            <div class="intel-lbl">Database</div>
+                            <div class="intel-val">PostgreSQL (Cloud)</div>
+                        </div>
+                        <div class="intel-row">
+                            <div class="intel-lbl">Target Host</div>
+                            <div class="intel-val">trycloudflare.com</div>
+                        </div>
+                        <div class="intel-row">
+                            <div class="intel-lbl">Stream Path</div>
+                            <div class="intel-val warn" id="stream-path-display">Auto-detecting...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if is_admin %}
+        <div id="Logs" class="tab-content card">
+            <div class="logs-title">USER ACTIVITY &amp; ACCESS HISTORY</div>
+            <div id="log-summary" style="display:flex; gap:30px; margin-bottom:25px; flex-wrap:wrap;">
+                <span style="font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:2px; color:var(--text-muted);">TOTAL: <span id="sum-total" style="color:var(--text-pure);">0</span></span>
+                <span style="font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:2px; color:var(--text-muted);">LOGINS: <span id="sum-logins" style="color:#00e676;">0</span></span>
+                <span style="font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:2px; color:var(--text-muted);">FAILED: <span id="sum-failed" style="color:var(--accent-crimson);">0</span></span>
+                <span style="font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:2px; color:var(--text-muted);">PASSWORD RESETS: <span id="sum-resets" style="color:var(--accent-amber);">0</span></span>
+                <span style="font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:2px; color:var(--text-muted);">ADMIN ACTIONS: <span id="sum-admin" style="color:var(--text-pure);">0</span></span>
+            </div>
+            <div class="log-filters">
+                <span class="filter-label">PERIOD:</span>
+                <button class="filter-btn active" onclick="setFilter(this,7)">Last 7 Days</button>
+                <button class="filter-btn" onclick="setFilter(this,30)">Last 30 Days</button>
+                <button class="filter-btn" onclick="setFilter(this,0)">All Time</button>
+                <div class="filter-sep"></div>
+                <span class="filter-label">TYPE:</span>
+                <button class="filter-btn active" onclick="setType(this,'all')">All</button>
+                <button class="filter-btn alert-btn" onclick="setType(this,'alerts')">Alerts & Requests</button>
+                <button class="filter-btn" onclick="setType(this,'success')">Logins</button>
+                <button class="filter-btn" onclick="setType(this,'failed')">Failed</button>
+                <button class="filter-btn" onclick="setType(this,'passreset')">Password Resets</button>
+                <div class="filter-sep"></div>
+                <span class="filter-label">SORT:</span>
+                <button class="sort-btn" id="sort-btn" onclick="toggleSort()">
+                    <span id="sort-label">Newest First</span>
+                    <span id="sort-arrow">↓</span>
+                </button>
+                <span class="log-count" id="log-count" style="margin-left:auto; font-family:'Orbitron',sans-serif; font-size:11px; color:var(--text-muted);"></span>
+            </div>
+            <div class="log-table-container">
+                <table class="log-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th><th>Time</th><th>User</th><th>Action</th><th>IP Address</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log-body">
+                        <tr><td colspan="5" style="color:var(--text-muted); text-align:center;">Loading logs...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
         
-        <div class="admin-card">
-          <div class="logs-title">ADD NEW OPERATOR</div>
-          <form action="/admin/manage_users" method="POST">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <input type="hidden" name="action" value="add">
-            
-            <div class="admin-input-group">
-              <label>ROLE</label>
-              <select name="role" class="admin-input">
-                <option value="operator">Normal Operator</option>
-                <option value="admin">Master Admin</option>
-              </select>
+        <div id="Admin" class="tab-content card">
+            <a href="/admin/export_logs" class="admin-btn dl" style="text-decoration:none;">⬇ DOWNLOAD SECURE AUDIT LOGS (CSV)</a>
+            <div class="admin-grid">
+                <div class="admin-card">
+                    <div class="logs-title">ADD NEW OPERATOR</div>
+                    <form action="/admin/manage_users" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <input type="hidden" name="action" value="add">
+                        
+                        <div class="admin-input-group">
+                            <label>ROLE</label>
+                            <select name="role" class="admin-input">
+                                <option value="operator">Normal Operator</option>
+                                <option value="admin">Master Admin</option>
+                            </select>
+                        </div>
+                        
+                        <div class="admin-input-group">
+                            <label>USERNAME</label>
+                            <input type="text" name="target_username" class="admin-input" required autocomplete="off">
+                        </div>
+                        <div class="admin-input-group">
+                            <label>PASSWORD</label>
+                            <input type="password" name="password" id="password-input" class="admin-input" required autocomplete="new-password">
+
+                            <div class="strength-wrapper">
+                                <div class="strength-bar"><div id="strength-fill"></div></div>
+                                <div id="strength-text" class="strength-text">PASSWORD STRENGTH</div>
+                            </div>
+
+                            <div class="pass-rules">
+                                <div id="rule-length" class="invalid">✖ At least 8 characters</div>
+                                <div id="rule-upper" class="invalid">✖ Uppercase letter</div>
+                                <div id="rule-number" class="invalid">✖ Number</div>
+                                <div id="rule-special" class="invalid">✖ Special character</div>
+                            </div>
+                        </div>
+                        <button type="submit" class="admin-btn">CREATE USER</button>
+                    </form>
+                </div>
+
+                <div class="admin-card">
+                    <div class="logs-title">SYSTEM USERS</div>
+                    <ul class="user-list">
+                        {% for u in all_users %}
+                        <li>
+                            <span>
+                                {{ u.username }}
+                                {% if u.is_admin %}<span class="badge admin-tag">ADMIN</span>{% endif %}
+                                {% if u.is_locked %}
+                                    <span class="badge locked">LOCKED ({{ u.failed_attempts }} fails)</span>
+                                {% else %}
+                                    <span class="badge ok">ACTIVE</span>
+                                {% endif %}
+                            </span>
+                            
+                            <div style="display:flex; gap:8px;">
+                                <form action="/admin/manage_users" method="POST" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                    <input type="hidden" name="action" value="reset">
+                                    <input type="hidden" name="target_username" value="{{ u.username }}">
+                                    <button type="submit" class="admin-btn warn" style="padding: 6px 12px; width:auto;" onclick="return confirm('Reset password for {{ u.username }}? This also resets their 2FA.')">RESET PASS</button>
+                                </form>
+
+                                <button type="button" class="admin-btn" style="padding: 6px 12px; width:auto; border-color: rgba(255,255,255,0.15);" onclick="openEditModal('{{ u.username }}')">EDIT NAME</button>
+
+                                {% if u.is_locked %}
+                                <form action="/admin/manage_users" method="POST" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                    <input type="hidden" name="action" value="unlock">
+                                    <input type="hidden" name="target_username" value="{{ u.username }}">
+                                    <button type="submit" class="admin-btn" style="padding: 6px 12px; width:auto;">UNLOCK</button>
+                                </form>
+                                {% endif %}
+                                
+                                {% if not u.is_admin %}
+                                <form action="/admin/manage_users" method="POST" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="target_username" value="{{ u.username }}">
+                                    <button type="submit" class="admin-btn danger" style="padding: 6px 12px; width:auto;" onclick="return confirm('Delete user {{ u.username }}?')">DELETE</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
             </div>
-            
-            <div class="admin-input-group">
-              <label>USERNAME</label>
-              <input type="text" name="target_username" class="admin-input" required>
-            </div>
-            <div class="admin-input-group">
-              <label>PASSWORD</label>
-              <input type="password" name="password" class="admin-input" required>
-            </div>
-            <button type="submit" class="admin-btn">CREATE USER</button>
-          </form>
         </div>
+        {% endif %}
+    </div>
 
-        <div class="admin-card">
-          <div class="logs-title">SYSTEM USERS</div>
-          <ul class="user-list">
-            {% for u in all_users %}
-            <li>
-              <span>
-                {{ u.username }}
-                {% if u.is_admin %}<span class="badge admin-tag">ADMIN</span>{% endif %}
-                {% if u.is_locked %}
-                  <span class="badge locked">LOCKED ({{ u.failed_attempts }} fails)</span>
-                {% else %}
-                  <span class="badge ok">ACTIVE</span>
-                {% endif %}
-              </span>
-              
-              <div style="display:flex; gap:8px;">
-                <form action="/admin/manage_users" method="POST" style="display:inline;">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                  <input type="hidden" name="action" value="reset">
-                  <input type="hidden" name="target_username" value="{{ u.username }}">
-                  <button type="submit" class="admin-btn warn" style="padding: 5px 10px; width:auto;" onclick="return confirm('Reset password for {{ u.username }} to default123? This also resets their 2FA.')">RESET PASS</button>
-                </form>
+    <script>
+        const CAM_BASE = 'https://washer-image-marker-proprietary.trycloudflare.com';
+        const STREAM_PATHS = [
+            '/video', '/mjpeg/1', '/mjpg/video.mjpg', '/videostream.cgi',
+            '/cgi-bin/mjpg/video.cgi', '/Streaming/Channels/1', '/stream',
+            '/live', '/cam/realmonitor', '/shot.jpg'
+        ];
 
-                <button type="button" class="admin-btn" style="padding: 5px 10px; width:auto; background:#1a5a7a;" onclick="openEditModal('{{ u.username }}')">EDIT NAME</button>
+        function showConnecting() {
+            document.getElementById('connecting-overlay').style.display = 'flex';
+            document.getElementById('error-overlay').style.display = 'none';
+            document.getElementById('cam-feed').style.display = 'none';
+            document.getElementById('live-badge').style.display = 'none';
+            document.getElementById('searching-badge').style.display = 'flex';
+            document.getElementById('conn-status').textContent = '● CONNECTING...';
+            document.getElementById('conn-status').style.color = 'var(--accent-amber)';
+            document.getElementById('feed-label').textContent = 'NODE · CONNECTING TO STREAM';
+        }
 
-                {% if u.is_locked %}
-                <form action="/admin/manage_users" method="POST" style="display:inline;">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                  <input type="hidden" name="action" value="unlock">
-                  <input type="hidden" name="target_username" value="{{ u.username }}">
-                  <button type="submit" class="admin-btn" style="padding: 5px 10px; width:auto;">UNLOCK</button>
-                </form>
-                {% endif %}
-                
-                {% if not u.is_admin %}
-                <form action="/admin/manage_users" method="POST" style="display:inline;">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                  <input type="hidden" name="action" value="delete">
-                  <input type="hidden" name="target_username" value="{{ u.username }}">
-                  <button type="submit" class="admin-btn danger" style="padding: 5px 10px; width:auto;" onclick="return confirm('Delete user {{ u.username }}?')">DELETE</button>
-                </form>
-                {% endif %}
+        function showLive(path) {
+            document.getElementById('connecting-overlay').style.display = 'none';
+            document.getElementById('error-overlay').style.display = 'none';
+            document.getElementById('cam-feed').style.display = 'block';
+            document.getElementById('live-badge').style.display = 'flex';
+            document.getElementById('searching-badge').style.display = 'none';
+            document.getElementById('conn-status').textContent = '● LIVE';
+            document.getElementById('conn-status').style.color = '#00e676';
+            document.getElementById('feed-label').textContent = 'NODE · LIVE CAMERA FEED';
+            document.getElementById('stream-path-display').textContent = path;
+            document.getElementById('stream-path-display').style.color = '#00e676';
+        }
+
+        function showError() {
+            document.getElementById('connecting-overlay').style.display = 'none';
+            document.getElementById('error-overlay').style.display = 'flex';
+            document.getElementById('cam-feed').style.display = 'none';
+            document.getElementById('live-badge').style.display = 'none';
+            document.getElementById('searching-badge').style.display = 'none';
+            document.getElementById('conn-status').textContent = '● OFFLINE';
+            document.getElementById('conn-status').style.color = 'var(--accent-crimson)';
+            document.getElementById('feed-label').textContent = 'NODE · STREAM UNAVAILABLE';
+            document.getElementById('stream-path-display').textContent = 'No path responded';
+            document.getElementById('stream-path-display').style.color = 'var(--accent-crimson)';
+        }
+
+        function tryPath(index) {
+            if (index >= STREAM_PATHS.length) { showError(); return; }
+            const path = STREAM_PATHS[index];
+            const feedElement = document.getElementById('cam-feed');
+
+            document.getElementById('cam-ip-label').textContent = `TRYING ENDPOINT ${path}`;
+            document.getElementById('stream-path-display').textContent = `Scanning ${path}...`;
+
+            const testImg = new Image();
+            let timeout = setTimeout(() => { testImg.src = ''; tryPath(index + 1); }, 4000);
+
+            testImg.onload = () => {
+                clearTimeout(timeout);
+                feedElement.src = CAM_BASE + path;
+                showLive(path);
+            };
+
+            testImg.onerror = () => {
+                clearTimeout(timeout);
+                tryPath(index + 1);
+            };
+
+            testImg.src = CAM_BASE + path;
+        }
+
+        function retryFeed() {
+            showConnecting();
+            setTimeout(() => tryPath(0), 500);
+        }
+
+        window.addEventListener('load', () => { showConnecting(); tryPath(0); });
+
+        let allLogs = [], activeDays = 7, activeType = 'all', sortAsc = false;
+
+        function openTab(evt, tabName) {
+            document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+            document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabName).style.display = 'block';
+            evt.currentTarget.classList.add('active');
+            if (tabName === 'Logs') updateLogs();
+        }
+
+        function setFilter(btn, days) {
+            activeDays = days;
+            btn.closest('.log-filters').querySelectorAll('.filter-btn').forEach(b => {
+                if (['7','30','0'].includes(b.getAttribute('onclick')?.match(/\d+/)?.[0])) b.classList.remove('active');
+            });
+            btn.classList.add('active'); renderLogs();
+        }
+
+        function setType(btn, type) {
+            activeType = type;
+            btn.closest('.log-filters').querySelectorAll('.filter-btn').forEach(b => {
+                if (b.getAttribute('onclick')?.includes('setType')) b.classList.remove('active');
+            });
+            btn.classList.add('active'); renderLogs();
+        }
+
+        function toggleSort() {
+            sortAsc = !sortAsc;
+            document.getElementById('sort-label').textContent = sortAsc ? 'Oldest First' : 'Newest First';
+            document.getElementById('sort-arrow').textContent = sortAsc ? '↑' : '↓';
+            renderLogs();
+        }
+
+        // FULL LOGIC RESTORED HERE
+        function parseLine(line) {
+            const m = line.match(/\[(.*?)\]\s(.*?)\s-\s(.*?)\s\((.*?)\)/);
+            if (!m) return null;
+            const [date, time] = m[1].split(' ');
+            // FIX: Safely parse date for Safari/iOS
+            return { date, time, user: m[2], action: m[3], ip: m[4], timestamp: new Date(`${date}T${time}`) };
+        }
+
+        let existingKeys = new Set();
+        function makeKey(log) {
+            return `${log.date}_${log.time}_${log.user}_${log.action}_${log.ip}`;
+        }
+
+        function renderLogs(isNewData = false) {
+            const now = new Date();
+            let filtered = allLogs.filter(log => {
+                if (activeDays > 0 && (now - log.timestamp) / 86400000 > activeDays) return false;
+                if (activeType === 'success' && !log.action.includes('LOGIN SUCCESS')) return false;
+                if (activeType === 'failed'  && !log.action.includes('FAILED LOGIN'))  return false;
+                if (activeType === 'alerts'  && !log.action.includes('REQUESTED') && !log.action.includes('ALERT')) return false;
+                if (activeType === 'passreset' && !log.action.includes('PASSWORD RESET REQUESTED')) return false;
+                return true;
+            });
+            
+            filtered.sort((a, b) => sortAsc ? a.timestamp - b.timestamp : b.timestamp - a.timestamp);
+            document.getElementById('log-count').textContent = `${filtered.length} record${filtered.length !== 1 ? 's' : ''}`;
+
+            const now2 = new Date();
+            const baseLogs = activeDays > 0 ? allLogs.filter(l => (now2 - l.timestamp) / 86400000 <= activeDays) : allLogs;
+            document.getElementById('sum-total').textContent  = baseLogs.length;
+            document.getElementById('sum-logins').textContent = baseLogs.filter(l => l.action.includes('LOGIN SUCCESS')).length;
+            document.getElementById('sum-failed').textContent = baseLogs.filter(l => l.action.includes('FAILED LOGIN')).length;
+            document.getElementById('sum-resets').textContent = baseLogs.filter(l => l.action.includes('PASSWORD RESET REQUESTED')).length;
+            document.getElementById('sum-admin').textContent  = baseLogs.filter(l => l.action.includes('ADMIN ACTION')).length;
+
+            let html = '';
+            filtered.forEach((log, i) => {
+                const cls = log.action.includes('LOGIN SUCCESS') ? 'success'
+                          : log.action.includes('FAILED LOGIN')  ? 'failed'
+                          : log.action.includes('REQUESTED') || log.action.includes('ALERT') ? 'alert'
+                          : log.action.includes('ACCESSED')      ? 'access' : '';
+
+                const key = makeKey(log);
+                const isNew = isNewData && !existingKeys.has(key);
+                const animClass = isNew ? 'new-row' : '';
+                const delay = isNew ? `style="animation-delay:${i*18}ms"` : '';
+
+                html += `<tr class="${animClass}" ${delay}>
+                  <td>${log.date}</td><td>${log.time}</td>
+                  <td class="user-col">${log.user}</td>
+                  <td class="${cls}">${log.action}</td>
+                  <td>${log.ip}</td>
+                </tr>`;
+            });
+
+            document.getElementById('log-body').innerHTML = html || '<tr><td colspan="5" style="color:var(--text-muted); text-align:center;">No logs found.</td></tr>';
+
+            if (isNewData) {
+                existingKeys = new Set(allLogs.map(makeKey));
+            }
+        }
+
+        let lastRawData = null;
+        function updateLogs() {
+            fetch('/get_logs').then(r => r.text()).then(data => {
+                if (data === lastRawData) return;
+                lastRawData = data;
+                allLogs = data.trim().split('\n').map(parseLine).filter(Boolean);
+                renderLogs(true);
+            });
+        }
+
+        {% if is_admin %}
+        setInterval(() => {
+            const logsTab = document.getElementById('Logs');
+            if (logsTab && logsTab.style.display === 'block') updateLogs();
+        }, 3000);
+
+        function openEditModal(username) {
+            document.getElementById('modal-target').value = username;
+            document.getElementById('modal-current').textContent = username;
+            document.getElementById('modal-new').value = '';
+            const modal = document.getElementById('edit-modal');
+            modal.style.display = 'flex';
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').style.display = 'none';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const editModal = document.getElementById('edit-modal');
+            if(editModal) {
+                editModal.addEventListener('click', function(e) {
+                    if (e.target === this) closeEditModal();
+                });
+            }
+        });
+
+        let lastResetCount = parseInt(sessionStorage.getItem('resetCount') || '-1');
+
+        function showResetToast(username, time) {
+            const container = document.getElementById('toast-container');
+            if(!container) return;
+            const toast = document.createElement('div');
+            toast.className = 'toast-notif';
+            toast.innerHTML = `
+              <div class="toast-icon">⚠️</div>
+              <div class="toast-body">
+                <div class="toast-title">PASSWORD RESET REQUESTED</div>
+                <div class="toast-msg">User <strong>${username}</strong> has requested a password reset.</div>
+                <div class="toast-time">${time} UTC+8</div>
               </div>
-            </li>
-            {% endfor %}
-          </ul>
-        </div>
-        
-      </div>
-    </div>
-    {% endif %}
+              <button class="toast-close" onclick="dismissToast(this.parentElement)">✕</button>
+              <div class="toast-progress"></div>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => dismissToast(toast), 6000);
+        }
 
-  </div>
+        function dismissToast(toast) {
+            if (!toast || toast.classList.contains('hiding')) return;
+            toast.classList.add('hiding');
+            setTimeout(() => toast.remove(), 300);
+        }
 
-  <script>
-    const CAM_BASE = 'https://washer-image-marker-proprietary.trycloudflare.com';
-    const STREAM_PATHS = [
-      '/video', '/mjpeg/1', '/mjpg/video.mjpg', '/videostream.cgi',
-      '/cgi-bin/mjpg/video.cgi', '/Streaming/Channels/1', '/stream',
-      '/live', '/cam/realmonitor', '/shot.jpg'
-    ];
+        function checkResetRequests() {
+            fetch('/get_logs').then(r => r.text()).then(data => {
+                if (!data || data === 'No activity recorded yet.') return;
+                const resets = data.trim().split('\n').filter(l => l.includes('PASSWORD RESET REQUESTED'));
+                const currentCount = resets.length;
 
-    function showConnecting() {
-      document.getElementById('connecting-overlay').style.display = 'flex';
-      document.getElementById('error-overlay').style.display = 'none';
-      document.getElementById('cam-feed').style.display = 'none';
-      document.getElementById('live-badge').style.display = 'none';
-      document.getElementById('searching-badge').style.display = 'flex';
-      document.getElementById('conn-status').textContent = '● CONNECTING...';
-      document.getElementById('conn-status').style.color = 'var(--accent-amber)';
-      document.getElementById('feed-label').textContent = 'NODE · CONNECTING TO STREAM';
-    }
+                if (lastResetCount === -1) {
+                    lastResetCount = currentCount;
+                    sessionStorage.setItem('resetCount', currentCount);
+                    return;
+                }
 
-    function showLive(path) {
-      document.getElementById('connecting-overlay').style.display = 'none';
-      document.getElementById('error-overlay').style.display = 'none';
-      document.getElementById('cam-feed').style.display = 'block';
-      document.getElementById('live-badge').style.display = 'flex';
-      document.getElementById('searching-badge').style.display = 'none';
-      document.getElementById('conn-status').textContent = '● LIVE';
-      document.getElementById('conn-status').style.color = 'var(--accent-green)';
-      document.getElementById('feed-label').textContent = 'NODE · LIVE CAMERA FEED';
-      document.getElementById('stream-path-display').textContent = path;
-      document.getElementById('stream-path-display').style.color = 'var(--accent-green)';
-    }
+                if (currentCount > lastResetCount) {
+                    const newResets = resets.slice(0, currentCount - lastResetCount);
+                    newResets.forEach(line => {
+                        const m = line.match(/\[(.*?)\]\s(.*?)\s-/);
+                        if (m) showResetToast(m[2], m[1]);
+                    });
+                    lastResetCount = currentCount;
+                    sessionStorage.setItem('resetCount', currentCount);
+                }
+            });
+        }
 
-    function showError() {
-      document.getElementById('connecting-overlay').style.display = 'none';
-      document.getElementById('error-overlay').style.display = 'flex';
-      document.getElementById('cam-feed').style.display = 'none';
-      document.getElementById('live-badge').style.display = 'none';
-      document.getElementById('searching-badge').style.display = 'none';
-      document.getElementById('conn-status').textContent = '● OFFLINE';
-      document.getElementById('conn-status').style.color = '#ff4466';
-      document.getElementById('feed-label').textContent = 'NODE · STREAM UNAVAILABLE';
-      document.getElementById('stream-path-display').textContent = 'No path responded';
-      document.getElementById('stream-path-display').style.color = '#ff4466';
-    }
+        setInterval(checkResetRequests, 3000);
+        checkResetRequests();
+        {% endif %}
+    </script>
 
-    function tryPath(index) {
-      if (index >= STREAM_PATHS.length) { showError(); return; }
-      const path = STREAM_PATHS[index];
-      const feedElement = document.getElementById('cam-feed');
+    <div id="toast-container" style="position:fixed; top:24px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:10px; max-width:360px; width:100%;"></div>
 
-      document.getElementById('cam-ip-label').textContent = `TRYING ENDPOINT ${path}`;
-      document.getElementById('stream-path-display').textContent = `Scanning ${path}...`;
+    <style>
+        .toast-notif {
+            display: flex; align-items: flex-start; gap: 14px;
+            background: var(--panel-graphite);
+            border: 1px solid var(--accent-amber);
+            border-left: 4px solid var(--accent-amber);
+            border-radius: 6px; padding: 14px 16px;
+            box-shadow: 0 0 24px rgba(255,145,0,0.2);
+            animation: toast-in 0.3s ease;
+            position: relative; overflow: hidden;
+            font-family: 'Rajdhani', sans-serif;
+        }
+        .toast-notif.hiding { animation: toast-out 0.3s ease forwards; }
+        @keyframes toast-in  { from { opacity:0; transform:translateX(40px); } to { opacity:1; transform:translateX(0); } }
+        @keyframes toast-out { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(40px); } }
+        .toast-notif .toast-icon { font-size:20px; margin-top:2px; }
+        .toast-notif .toast-body { flex:1; }
+        .toast-notif .toast-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size:11px; font-weight: 700; letter-spacing:2px;
+            color: var(--accent-amber); margin-bottom:5px;
+        }
+        .toast-notif .toast-msg  { font-size:14px; color:var(--text-pure); line-height:1.5; font-weight:600;}
+        .toast-notif .toast-msg strong { color: var(--accent-amber); }
+        .toast-notif .toast-time { font-size:11px; color:var(--text-muted); margin-top:4px; font-weight:700;}
+        .toast-notif .toast-close {
+            background:none; border:none; color:var(--text-muted);
+            cursor:pointer; font-size:16px; padding:0; line-height:1;
+            margin-top:1px; transition:color 0.2s;
+        }
+        .toast-notif .toast-close:hover { color:var(--text-pure); }
+        .toast-notif .toast-progress {
+            position:absolute; bottom:0; left:0;
+            height:3px; background:var(--accent-amber);
+            border-radius:0 0 0 6px;
+            animation: shrink 6s linear forwards;
+        }
+        @keyframes shrink { from { width:100%; } to { width:0%; } }
 
-      const testImg = new Image();
-      let timeout = setTimeout(() => { testImg.src = ''; tryPath(index + 1); }, 4000);
-
-      testImg.onload = () => {
-        clearTimeout(timeout);
-        feedElement.src = CAM_BASE + path;
-        showLive(path);
-      };
-
-      testImg.onerror = () => {
-        clearTimeout(timeout);
-        tryPath(index + 1);
-      };
-
-      testImg.src = CAM_BASE + path;
-    }
-
-    function retryFeed() {
-      showConnecting();
-      setTimeout(() => tryPath(0), 500);
-    }
-
-    window.addEventListener('load', () => { showConnecting(); tryPath(0); });
-
-   
-    let allLogs = [], activeDays = 7, activeType = 'all', sortAsc = false;
-    let lastRawData = null;
-
-    function openTab(evt, tabName) {
-      document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
-      document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
-      
-      const target = document.getElementById(tabName);
-      if (target) {
-          target.style.display = 'block';
-      }
-      
-      evt.currentTarget.classList.add('active');
-      if (tabName === 'Logs') updateLogs();
-    }
-
-    function setFilter(btn, days) {
-      activeDays = days;
-      btn.closest('.log-filters').querySelectorAll('.filter-btn').forEach(b => {
-        if (['7','30','0'].includes(b.getAttribute('onclick')?.match(/\d+/)?.[0])) b.classList.remove('active');
-      });
-      btn.classList.add('active'); renderLogs();
-    }
-
-    function setType(btn, type) {
-      activeType = type;
-      btn.closest('.log-filters').querySelectorAll('.filter-btn').forEach(b => {
-        if (b.getAttribute('onclick')?.includes('setType')) b.classList.remove('active');
-      });
-      btn.classList.add('active'); renderLogs();
-    }
-
-    function toggleSort() {
-      sortAsc = !sortAsc;
-      document.getElementById('sort-label').textContent = sortAsc ? 'Oldest First' : 'Newest First';
-      document.getElementById('sort-arrow').textContent = sortAsc ? '↑' : '↓';
-      renderLogs();
-    }
-
-    function parseLine(line) {
-      const m = line.match(/\[(.*?)\]\s(.*?)\s-\s(.*?)\s\((.*?)\)/);
-      if (!m) return null;
-      const [date, time] = m[1].split(' ');
-      // FIX: Added 'T' separator to safely format the Date for Safari/iOS browsers
-      return { date, time, user: m[2], action: m[3], ip: m[4], timestamp: new Date(`${date}T${time}`) };
-    }
-
-    
-    let existingKeys = new Set();
-
-    function makeKey(log) {
-      return `${log.date}_${log.time}_${log.user}_${log.action}_${log.ip}`;
-    }
-
-    function renderLogs(isNewData = false) {
-      const now = new Date();
-      let filtered = allLogs.filter(log => {
-        if (activeDays > 0 && (now - log.timestamp) / 86400000 > activeDays) return false;
-        if (activeType === 'success' && !log.action.includes('LOGIN SUCCESS')) return false;
-        if (activeType === 'failed'  && !log.action.includes('FAILED LOGIN'))  return false;
-        if (activeType === 'alerts'    && !log.action.includes('REQUESTED') && !log.action.includes('ALERT')) return false;
-        if (activeType === 'passreset' && !log.action.includes('PASSWORD RESET REQUESTED')) return false;
-        return true;
-      });
-      filtered.sort((a, b) => sortAsc ? a.timestamp - b.timestamp : b.timestamp - a.timestamp);
-      document.getElementById('log-count').textContent = `${filtered.length} record${filtered.length !== 1 ? 's' : ''}`;
-
-      const now2 = new Date();
-      const baseLogs = activeDays > 0 ? allLogs.filter(l => (now2 - l.timestamp) / 86400000 <= activeDays) : allLogs;
-      document.getElementById('sum-total').textContent  = baseLogs.length;
-      document.getElementById('sum-logins').textContent = baseLogs.filter(l => l.action.includes('LOGIN SUCCESS')).length;
-      document.getElementById('sum-failed').textContent = baseLogs.filter(l => l.action.includes('FAILED LOGIN')).length;
-      document.getElementById('sum-resets').textContent = baseLogs.filter(l => l.action.includes('PASSWORD RESET REQUESTED')).length;
-      document.getElementById('sum-admin').textContent  = baseLogs.filter(l => l.action.includes('ADMIN ACTION')).length;
-
-      let html = '';
-      filtered.forEach((log, i) => {
-        const cls = log.action.includes('LOGIN SUCCESS') ? 'success'
-                  : log.action.includes('FAILED LOGIN')  ? 'failed'
-                  : log.action.includes('REQUESTED') || log.action.includes('ALERT') ? 'alert'
-                  : log.action.includes('ACCESSED')      ? 'access' : '';
-
-        const key = makeKey(log);
-        const isNew = isNewData && !existingKeys.has(key);
-        const animClass = isNew ? 'new-row' : '';
-        const delay = isNew ? `style="animation-delay:${i*18}ms"` : '';
-
-        html += `<tr class="${animClass}" ${delay}>
-          <td>${log.date}</td><td>${log.time}</td>
-          <td class="user-col">${log.user}</td>
-          <td class="${cls}">${log.action}</td>
-          <td>${log.ip}</td>
-        </tr>`;
-      });
-
-      document.getElementById('log-body').innerHTML = html || '<tr><td colspan="5" style="color:var(--text-dim)">No logs found.</td></tr>';
-
-      if (isNewData) {
-        existingKeys = new Set(allLogs.map(makeKey));
-      }
-    }
-
-    function updateLogs() {
-      fetch('/get_logs').then(r => r.text()).then(data => {
-        if (data === lastRawData) return;
-        lastRawData = data;
-        allLogs = data.trim().split('\n').map(parseLine).filter(Boolean);
-        renderLogs(true);
-      });
-    }
+        /* Animation for new log rows */
+        @keyframes row-in { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
+        .log-table tbody tr.new-row { animation: row-in 0.3s ease both; }
+    </style>
 
     {% if is_admin %}
-    setInterval(() => {
-      const logsTab = document.getElementById('Logs');
-      if (logsTab && logsTab.style.display === 'block') updateLogs();
-    }, 3000);
-
-    function openEditModal(username) {
-      document.getElementById('modal-target').value = username;
-      document.getElementById('modal-current').textContent = username;
-      document.getElementById('modal-new').value = '';
-      const modal = document.getElementById('edit-modal');
-      modal.style.display = 'flex';
-    }
-
-    function closeEditModal() {
-      document.getElementById('edit-modal').style.display = 'none';
-    }
-
-    document.getElementById('edit-modal').addEventListener('click', function(e) {
-      if (e.target === this) closeEditModal();
-    });
-
-    let lastResetCount = parseInt(sessionStorage.getItem('resetCount') || '-1');
-
-    function showResetToast(username, time) {
-      const container = document.getElementById('toast-container');
-      const toast = document.createElement('div');
-      toast.className = 'toast-notif';
-      toast.innerHTML = `
-        <div class="toast-icon">⚠</div>
-        <div class="toast-body">
-          <div class="toast-title">PASSWORD RESET REQUESTED</div>
-          <div class="toast-msg">User <strong>${username}</strong> has requested a password reset.</div>
-          <div class="toast-time">${time} UTC+8</div>
+    <div id="edit-modal" style="display:none; position:fixed; inset:0; z-index:999; background:rgba(0,0,0,0.85); justify-content:center; align-items:center;">
+        <div style="background:var(--panel-graphite); border:1px solid var(--accent-crimson); border-radius:8px; padding:32px; width:380px; position:relative; box-shadow: 0 0 30px rgba(255,30,39,0.2);">
+            <div style="font-family:'Orbitron',sans-serif; font-size:15px; font-weight:700; letter-spacing:2px; color:var(--text-pure); margin-bottom:20px; text-transform:uppercase;">EDIT USERNAME</div>
+            <form action="/admin/manage_users" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="action" value="edit_username">
+                <input type="hidden" name="target_username" id="modal-target">
+                <div style="margin-bottom:15px;">
+                    <label style="display:block; font-size:12px; font-weight:600; letter-spacing:2px; color:var(--text-muted); margin-bottom:8px; text-transform:uppercase;">CURRENT USERNAME</label>
+                    <div id="modal-current" style="font-size:15px; font-weight:600; color:var(--text-pure); padding:10px 14px; background:var(--input-bg); border-radius:4px; border:1px solid var(--border-subtle); border-left:3px solid var(--accent-amber);"></div>
+                </div>
+                <div style="margin-bottom:25px;">
+                    <label style="display:block; font-size:12px; font-weight:600; letter-spacing:2px; color:var(--text-muted); margin-bottom:8px; text-transform:uppercase;">NEW USERNAME</label>
+                    <input type="text" name="new_username" id="modal-new" required
+                        style="width:100%; padding:14px 18px; background:var(--input-bg); border:1px solid var(--border-subtle); border-left:3px solid var(--accent-crimson); border-radius:4px; color:var(--text-pure); font-family:'Rajdhani',sans-serif; font-size:15px; font-weight:600; outline:none;">
+                </div>
+                <div style="display:flex; gap:15px;">
+                    <button type="submit" class="admin-btn" style="flex:1;">SAVE</button>
+                    <button type="button" class="admin-btn warn" style="flex:1;" onclick="closeEditModal()">CANCEL</button>
+                </div>
+            </form>
         </div>
-        <button class="toast-close" onclick="dismissToast(this.parentElement)">✕</button>
-        <div class="toast-progress"></div>
-      `;
-      container.appendChild(toast);
-      setTimeout(() => dismissToast(toast), 6000);
-    }
-
-    function dismissToast(toast) {
-      if (!toast || toast.classList.contains('hiding')) return;
-      toast.classList.add('hiding');
-      setTimeout(() => toast.remove(), 300);
-    }
-
-    function checkResetRequests() {
-      fetch('/get_logs').then(r => r.text()).then(data => {
-        if (!data || data === 'No activity recorded yet.') return;
-        const resets = data.trim().split('\n').filter(l => l.includes('PASSWORD RESET REQUESTED'));
-        const currentCount = resets.length;
-
-        if (lastResetCount === -1) {
-          lastResetCount = currentCount;
-          sessionStorage.setItem('resetCount', currentCount);
-          return;
-        }
-
-        if (currentCount > lastResetCount) {
-          const newResets = resets.slice(0, currentCount - lastResetCount);
-          newResets.forEach(line => {
-            const m = line.match(/\[(.*?)\]\s(.*?)\s-/);
-            if (m) showResetToast(m[2], m[1]);
-          });
-          lastResetCount = currentCount;
-          sessionStorage.setItem('resetCount', currentCount);
-        }
-      });
-    }
-
-    setInterval(checkResetRequests, 3000);
-    checkResetRequests();
-    {% endif %}
-  </script>
-
-  <div id="toast-container" style="position:fixed; top:24px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:10px; max-width:360px; width:100%;"></div>
-
-  <style>
-    .toast-notif {
-      display: flex; align-items: flex-start; gap: 14px;
-      background: #0a1e2e;
-      border: 1px solid var(--accent-amber);
-      border-left: 4px solid var(--accent-amber);
-      border-radius: 6px; padding: 14px 16px;
-      box-shadow: 0 0 24px rgba(255,179,0,0.2);
-      animation: toast-in 0.3s ease;
-      position: relative; overflow: hidden;
-    }
-    .toast-notif.hiding { animation: toast-out 0.3s ease forwards; }
-    @keyframes toast-in  { from { opacity:0; transform:translateX(40px); } to { opacity:1; transform:translateX(0); } }
-    @keyframes toast-out { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(40px); } }
-    .toast-notif .toast-icon { font-size:20px; margin-top:2px; }
-    .toast-notif .toast-body { flex:1; }
-    .toast-notif .toast-title {
-      font-family: 'Orbitron', monospace;
-      font-size:10px; letter-spacing:2px;
-      color: var(--accent-amber); margin-bottom:5px;
-    }
-    .toast-notif .toast-msg  { font-size:12px; color:var(--text-primary); line-height:1.5; }
-    .toast-notif .toast-msg strong { color: var(--accent-blue); }
-    .toast-notif .toast-time { font-size:10px; color:var(--text-muted); margin-top:4px; }
-    .toast-notif .toast-close {
-      background:none; border:none; color:var(--text-muted);
-      cursor:pointer; font-size:16px; padding:0; line-height:1;
-      margin-top:1px; transition:color 0.2s;
-    }
-    .toast-notif .toast-close:hover { color:var(--text-primary); }
-    .toast-notif .toast-progress {
-      position:absolute; bottom:0; left:0;
-      height:3px; background:var(--accent-amber);
-      border-radius:0 0 0 6px;
-      animation: shrink 6s linear forwards;
-    }
-    @keyframes shrink { from { width:100%; } to { width:0%; } }
-  </style>
-
-  <div id="edit-modal" style="display:none; position:fixed; inset:0; z-index:999; background:rgba(0,0,0,0.7); justify-content:center; align-items:center;">
-    <div style="background:var(--bg-card); border:1px solid var(--border-glow); border-radius:8px; padding:32px; width:380px; position:relative;">
-      <div style="font-family:'Orbitron',monospace; font-size:13px; letter-spacing:2px; color:var(--accent-cyan); margin-bottom:20px;">EDIT USERNAME</div>
-      <form action="/admin/manage_users" method="POST">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-        <input type="hidden" name="action" value="edit_username">
-        <input type="hidden" name="target_username" id="modal-target">
-        <div style="margin-bottom:14px;">
-          <label style="display:block; font-size:10px; letter-spacing:2px; color:var(--text-muted); margin-bottom:8px;">CURRENT USERNAME</label>
-          <div id="modal-current" style="font-size:13px; color:var(--accent-blue); padding:8px; background:var(--bg-input); border-radius:4px; border:1px solid var(--border-dim);"></div>
-        </div>
-        <div style="margin-bottom:20px;">
-          <label style="display:block; font-size:10px; letter-spacing:2px; color:var(--text-muted); margin-bottom:8px;">NEW USERNAME</label>
-          <input type="text" name="new_username" id="modal-new" required
-            style="width:100%; padding:10px; background:var(--bg-input); border:1px solid var(--border-dim); border-radius:4px; color:var(--text-primary); font-family:'Share Tech Mono',monospace;">
-        </div>
-        <div style="display:flex; gap:10px;">
-          <button type="submit" class="admin-btn" style="flex:1;">SAVE</button>
-          <button type="button" class="admin-btn danger" style="flex:1;" onclick="closeEditModal()">CANCEL</button>
-        </div>
-      </form>
     </div>
-  </div>
+    {% endif %}
 
 </body>
 </html>
