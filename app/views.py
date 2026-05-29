@@ -49,7 +49,9 @@ def get_logs():
     if not current_user.is_admin:
         abort(403)
 
-    logs = AuditLog.query.order_by(AuditLog.id.desc()).limit(50).all()
+    # FIX: Removed .limit(50) so "All Time" fetches the entire database history
+    logs = AuditLog.query.order_by(AuditLog.id.desc()).all()
+    
     lines = []
     for log in logs:
         ts = log.timestamp if log.timestamp else datetime.utcnow()
