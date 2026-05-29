@@ -18,8 +18,12 @@ class AuditLog(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     action = db.Column(db.String(200))
     ip_address = db.Column(db.String(50))
+    
+    # FIX: Restored the missing Threat Tracking fields for the SOC!
+    event_code = db.Column(db.String(32), default='SYS_EVENT')
+    severity = db.Column(db.String(16), default='INFO')
 
-# NEW: Permanent Firewall Blacklist Table
+# Permanent Firewall Blacklist Table
 class BlockedIP(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ip_address = db.Column(db.String(50), unique=True, nullable=False)
