@@ -15,6 +15,8 @@ TOTP_MAX_ATTEMPTS = 5
 MAX_IP_STRIKES = 10
 
 def get_client_ip():
+    if request.headers.get('CF-Connecting-IP'):
+        return request.headers.get('CF-Connecting-IP').strip()
     if request.headers.get('X-Forwarded-For'):
         return request.headers.get('X-Forwarded-For').split(',')[0].strip()
     return request.remote_addr
@@ -34,15 +36,11 @@ def add_ip_strike(custom_reason=None, force_ban=False):
         return True
     return False
 
-# NEW: Automated Deep Packet / Signature Inspection Engine
 def detect_suspicious_payloads():
-    # Common exploit signatures for SQLi, XSS, and Path Traversal
     malicious_signatures = [
         "' or ", '" or ', "1=1", "UNION SELECT", "select * from", "drop table", 
         "<script>", "javascript:", "onerror=", "alert(", "../", "..\\", "/etc/passwd"
     ]
-    
-    # Check all submitted form text items
     for key, value in request.form.items():
         if value:
             normalized_val = value.lower()
@@ -55,7 +53,6 @@ def detect_suspicious_payloads():
 @limiter.limit("10 per minute")
 def login():
     if request.method == 'POST':
-        # 1. Active Threat Scan Inspection Check
         malicious_reason = detect_suspicious_payloads()
         if malicious_reason:
             record_activity(f"ATTACK DETECTED: {malicious_reason}", None)

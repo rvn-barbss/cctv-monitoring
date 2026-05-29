@@ -44,12 +44,15 @@ def create_app():
 
     from app.models import User, BlockedIP
     
-    # NEW: Global Security Interceptor
     @app.before_request
     def block_malicious_ips():
-        ip = request.remote_addr
-        if request.headers.get('X-Forwarded-For'):
+        # Use True Client IP logic for the firewall
+        if request.headers.get('CF-Connecting-IP'):
+            ip = request.headers.get('CF-Connecting-IP').strip()
+        elif request.headers.get('X-Forwarded-For'):
             ip = request.headers.get('X-Forwarded-For').split(',')[0].strip()
+        else:
+            ip = request.remote_addr
             
         is_blocked = BlockedIP.query.filter_by(ip_address=ip).first()
         if is_blocked:
