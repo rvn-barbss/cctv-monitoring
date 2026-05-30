@@ -1,5 +1,7 @@
 import os
 import cv2
+import threading
+import time
 from datetime import datetime, timedelta
 from flask import Blueprint, render_template, redirect, url_for, session, abort, Response
 from flask_login import login_required, current_user
@@ -67,32 +69,57 @@ def get_logs():
     output = "\n".join(lines) if lines else "No activity recorded yet."
     return Response(output, mimetype='text/plain')
 
-def generate_frames():
-    # Securely retrieve the RTSP URL from the hidden .env file
+
+global_frame = None
+stream_lock = threading.Lock()
+camera_thread = None
+
+def capture_rtsp_stream():
+    """Background thread that connects to the Tenda camera EXACTLY ONCE"""
+    global global_frame
     rtsp_url = os.environ.get('CCTV_RTSP_URL')
     
     if not rtsp_url:
         print("ERROR: CCTV_RTSP_URL not set in environment variables.")
         return
 
-    # Initialize connection to the Dahua IP camera
     camera = cv2.VideoCapture(rtsp_url)
     
     while True:
         success, frame = camera.read()
         if not success:
-            # Reconnect if the stream drops
+            print("Stream dropped. Reconnecting...")
             camera.release()
+            time.sleep(2) 
             camera = cv2.VideoCapture(rtsp_url)
             continue
             
-        # Encode the frame into a JPEG for web browser viewing
-        ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
-        frame = buffer.tobytes()
         
-        # Yield the image byte data in an MJPEG format
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+        if ret:
+            with stream_lock:
+                global_frame = buffer.tobytes()
+
+def generate_frames():
+    """Yields the shared global frame to whoever is viewing the website"""
+    global global_frame, camera_thread
+    
+    if camera_thread is None:
+        camera_thread = threading.Thread(target=capture_rtsp_stream, daemon=True)
+        camera_thread.start()
+        time.sleep(1) 
+        
+    while True:
+        with stream_lock:
+            frame_to_send = global_frame
+            
+        if frame_to_send is not None:
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame_to_send + b'\r\n')
+        else:
+            time.sleep(0.1) 
+            
+        time.sleep(0.05)
 
 @views_bp.route('/video_feed')
 @login_required 
