@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>SECURIX | Advanced Control Panel</title>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -408,9 +407,8 @@
                             <div class="pulse amber"></div>CONNECTING
                         </div>
 
-                        <video id="cam-feed" autoplay muted playsinline style="display:none; position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1;"></video>
-
-                        <img id="cam-feed-img" style="display:none; position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1;" alt="MJPEG Camera Feed" />
+                        <!-- Iframe for universal stream support (Bypasses CORS) -->
+                        <iframe id="cam-feed-iframe" style="display:none; position:absolute; inset:0; width:100%; height:100%; border:none; z-index:1;" allow="autoplay; fullscreen" title="CCTV Feed"></iframe>
 
                         <div class="cam-overlay" id="connecting-overlay">
                             <div class="search-ring"></div>
@@ -653,8 +651,7 @@
         function showConnecting() {
             document.getElementById('connecting-overlay').style.display = 'flex';
             document.getElementById('error-overlay').style.display = 'none';
-            document.getElementById('cam-feed').style.display = 'none';
-            document.getElementById('cam-feed-img').style.display = 'none';
+            document.getElementById('cam-feed-iframe').style.display = 'none';
             document.getElementById('live-badge').style.display = 'none';
             document.getElementById('searching-badge').style.display = 'flex';
             document.getElementById('conn-status').textContent = '● CONNECTING...';
@@ -665,6 +662,7 @@
         function showLive(path) {
             document.getElementById('connecting-overlay').style.display = 'none';
             document.getElementById('error-overlay').style.display = 'none';
+            document.getElementById('cam-feed-iframe').style.display = 'block';
             document.getElementById('live-badge').style.display = 'flex';
             document.getElementById('searching-badge').style.display = 'none';
             document.getElementById('conn-status').textContent = '● LIVE';
@@ -677,8 +675,7 @@
         function showError() {
             document.getElementById('connecting-overlay').style.display = 'none';
             document.getElementById('error-overlay').style.display = 'flex';
-            document.getElementById('cam-feed').style.display = 'none';
-            document.getElementById('cam-feed-img').style.display = 'none'; // Hide image on error
+            document.getElementById('cam-feed-iframe').style.display = 'none';
             document.getElementById('live-badge').style.display = 'none';
             document.getElementById('searching-badge').style.display = 'none';
             document.getElementById('conn-status').textContent = '● OFFLINE';
@@ -689,59 +686,20 @@
         }
 
         function loadLocalFeed() {
-            const video = document.getElementById('cam-feed');
-            const img = document.getElementById('cam-feed-img');
+            const iframe = document.getElementById('cam-feed-iframe');
             const streamUrl = "{{ cam_url }}"; // Pulls the target link from Railway
             
             document.getElementById('cam-ip-label').textContent = "CONNECTING TO SECURE TUNNEL";
             document.getElementById('stream-path-display').textContent = streamUrl;
 
-            // Reset view states
-            video.style.display = 'none';
-            img.style.display = 'none';
-
-            // TYPE 1: Handle Python/OpenCV MJPEG Stream (Classmate's Link)
-            if (!streamUrl.includes('.m3u8')) {
-                img.src = streamUrl;
-                img.onload = function() {
-                    img.style.display = 'block';
-                    showLive('Python OpenCV MJPEG');
-                };
-                img.onerror = function() {
-                    showError();
-                    document.getElementById('error-detail').textContent = 'MJPEG Stream endpoint connection refused.';
-                };
-                return;
-            }
-
-            // TYPE 2: Handle MediaMTX HLS Stream (Your Link)
-            if (Hls.isSupported()) {
-                const hls = new Hls();
-                hls.loadSource(streamUrl);
-                hls.attachMedia(video);
-                hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                    video.style.display = 'block';
-                    video.play();
-                    showLive('Cloudflare HLS');
-                });
-                hls.on(Hls.Events.ERROR, function (event, data) {
-                    if (data.fatal) {
-                        showError();
-                        document.getElementById('error-detail').textContent = 'HLS stream playlist parsed empty or offline.';
-                    }
-                });
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                video.src = streamUrl;
-                video.addEventListener('loadedmetadata', function() {
-                    video.style.display = 'block';
-                    video.play();
-                    showLive('Cloudflare HLS (Native)');
-                });
-                video.addEventListener('error', () => showError());
-            } else {
+            // Load iframe and force Live view so Cloudflare splash page or video is visible
+            iframe.src = streamUrl;
+            iframe.onload = function() {
+                showLive('Cloudflare Tunnel');
+            };
+            iframe.onerror = function() {
                 showError();
-                document.getElementById('error-detail').textContent = 'Your browser does not support HLS video streams.';
-            }
+            };
         }
 
         function retryFeed() {
