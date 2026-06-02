@@ -33,12 +33,15 @@ def create_app():
     limiter.init_app(app)
     login_manager.login_view = 'auth.login'
 
+    # UPDATED: Relaxed CSP to allow Cloudflare HLS streaming and jsDelivr scripts
     csp = {
         'default-src': ["'self'"],
         'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         'font-src': ["'self'", "https://fonts.gstatic.com"],
         'img-src': ["'self'", "data:", "blob:", "https://*.trycloudflare.com"],
-        'script-src': ["'self'", "'unsafe-inline'"]
+        'script-src': ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+        'connect-src': ["'self'", "https://*.trycloudflare.com"],
+        'media-src': ["'self'", "blob:", "https://*.trycloudflare.com"]
     }
     Talisman(app, content_security_policy=csp, frame_options='DENY', content_security_policy_nonce_in=[])
 
