@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>SECURIX | Advanced Control Panel</title>
+    <!-- HLS Decoder Library for Cloudflare Stream -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -408,9 +409,11 @@
                             <div class="pulse amber"></div>CONNECTING
                         </div>
 
+                        <!-- Video tag for HLS streams (Your Setup) -->
                         <video id="cam-feed" autoplay muted playsinline style="display:none; position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1;"></video>
 
-                        <img id="cam-feed-img" style="display:none; position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1;" alt="MJPEG Camera Feed" />
+                        <!-- UPDATED Image tag with anti-firewall stealth attributes -->
+                        <img id="cam-feed-img" referrerpolicy="no-referrer" crossorigin="anonymous" style="display:none; position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1;" alt="MJPEG Camera Feed" />
 
                         <div class="cam-overlay" id="connecting-overlay">
                             <div class="search-ring"></div>
@@ -678,7 +681,7 @@
             document.getElementById('connecting-overlay').style.display = 'none';
             document.getElementById('error-overlay').style.display = 'flex';
             document.getElementById('cam-feed').style.display = 'none';
-            document.getElementById('cam-feed-img').style.display = 'none'; // Hide image
+            document.getElementById('cam-feed-img').style.display = 'none'; 
             document.getElementById('live-badge').style.display = 'none';
             document.getElementById('searching-badge').style.display = 'none';
             document.getElementById('conn-status').textContent = '● OFFLINE';
@@ -701,14 +704,15 @@
 
             // TYPE 1: Handle Python/OpenCV MJPEG Stream (Classmate's Link)
             if (!streamUrl.includes('.m3u8')) {
-                img.src = streamUrl;
+                // Cache-busting timestamp added to bypass Cloudflare caching a previous blocked request
+                img.src = streamUrl + "?t=" + new Date().getTime();
                 img.onload = function() {
                     img.style.display = 'block';
                     showLive('Python OpenCV MJPEG');
                 };
                 img.onerror = function() {
                     showError();
-                    document.getElementById('error-detail').textContent = 'MJPEG Stream endpoint connection refused.';
+                    document.getElementById('error-detail').textContent = 'MJPEG Stream connection explicitly blocked by Cloudflare Firewall.';
                 };
                 return;
             }
