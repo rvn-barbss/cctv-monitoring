@@ -212,7 +212,7 @@
         .intel-title { font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--accent-crimson); margin-bottom: 20px; }
         .intel-row { padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
         .intel-row:last-child { border-bottom: none; }
-        .intel-lbl { font-size: 11px; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; font-weight: 600; }
+        .intel-lbl { font-family: 'Orbitron', sans-serif; font-size: 10px; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; font-weight: 700; }
         .intel-val { font-size: 15px; font-weight: 600; color: var(--text-pure); }
         .intel-val.live { color: #00e676; }
         .intel-val.warn { color: var(--accent-amber); }
@@ -427,26 +427,26 @@
 
                 <div>
                     <div class="section-label">NETWORK INTEL</div>
-                    <div class="intel-box">
-                        <div class="intel-title">// SYSTEM STATUS</div>
-                        <div class="intel-row">
-                            <div class="intel-lbl">Connection</div>
-                            <div class="intel-val live" id="conn-status">● CONNECTING...</div>
+                    <div class="intel-box" style="background-color: #0c0e12; border: 1px solid #1f2229;">
+                        <div class="intel-title" style="color: var(--accent-crimson); margin-bottom: 25px;">
+                            // SYSTEM STATUS
                         </div>
-                        <div class="intel-row">
-                            <div class="intel-lbl">Database</div>
-                            <div class="intel-val">PostgreSQL (Cloud)</div>
+
+                        <div style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 20px; margin-bottom: 20px;">
+                            <div class="intel-lbl">CONNECTION</div>
+                            <div class="intel-val live" id="conn-status" style="font-family: 'Orbitron', sans-serif; font-size: 14px;">● CONNECTING...</div>
+                            <div id="stream-path-display" style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Auto-detecting...</div>
                         </div>
-                        <div class="intel-row">
-                            <div class="intel-lbl">Target Host</div>
-                            <div class="intel-val">Local RTSP Server</div>
-                        </div>
-                        <div class="intel-row">
-                            <div class="intel-lbl">Stream Path</div>
-                            <div class="intel-val warn" id="stream-path-display">Auto-detecting...</div>
+
+                        <div>
+                            <div class="intel-lbl" style="margin-bottom: 15px;">LIVE TELEMETRY</div>
+                            <div id="mini-telemetry-feed" style="font-family: 'Rajdhani', sans-serif; font-size: 13px; line-height: 1.6; min-height: 150px;">
+                                <div style="color: #00e676; font-weight: 600;">[SYS] Telemetry initialized...</div>
+                            </div>
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
 
@@ -710,7 +710,14 @@
 
             // ---> HLS ROUTE <---
             if (Hls.isSupported()) {
-                const hls = new Hls();
+                const hls = new Hls({
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                    backBufferLength: 90,
+                    liveSyncDurationCount: 2, 
+                    liveMaxLatencyDurationCount: 4, 
+                    maxBufferLength: 10,
+                });
                 hls.loadSource(streamUrl);
                 hls.attachMedia(video);
                 hls.on(Hls.Events.MANIFEST_PARSED, function() {
@@ -800,6 +807,46 @@
             return `${log.date}_${log.time}_${log.user}_${log.action}_${log.ip}`;
         }
 
+        // UPDATED: Dynamically injects logs into the new Telemetry Card on the main page
+        function updateMiniTelemetry() {
+            const feed = document.getElementById('mini-telemetry-feed');
+            if (!feed) return;
+            
+            if (allLogs.length === 0) {
+                feed.innerHTML = '<div style="color: var(--text-muted); font-weight: 600;">[SYS] Waiting for intelligence data...</div>';
+                return;
+            }
+
+            const topLogs = allLogs.slice(0, 5); // Grabs the 5 most recent events
+            let html = '';
+            
+            topLogs.forEach(log => {
+                let color = '#00bfff'; 
+                let tag = '[INFO]';
+                if (log.action.includes('FAILED') || log.action.includes('DENIED') || log.action.includes('ALERT') || log.action.includes('REQUESTED')) {
+                    color = 'var(--accent-amber)'; 
+                    tag = '[WARN]';
+                }
+                if (log.action.includes('BLOCKED') || log.action.includes('BAN') || log.action.includes('INTRUSION')) {
+                    color = 'var(--accent-crimson)'; 
+                    tag = '[CRIT]';
+                }
+                
+                html += `
+                <div style="margin-bottom: 12px; display: flex; flex-direction: column; border-left: 2px solid ${color}; padding-left: 10px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 10px; font-family: 'Orbitron', sans-serif;">
+                        <span style="color: ${color}; font-weight: 700; letter-spacing: 1px;">${tag}</span>
+                        <span style="color: var(--text-muted);">${log.time}</span>
+                    </div>
+                    <span style="color: var(--text-pure); font-weight: 500; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${log.action}">
+                        ${log.action}
+                    </span>
+                </div>`;
+            });
+            
+            feed.innerHTML = html;
+        }
+
         function renderLogs(isNewData = false) {
             const now = new Date();
             let filtered = allLogs.filter(log => {
@@ -841,7 +888,12 @@
                 const animClass = isNew ? 'new-row' : '';
                 const delay = isNew ? `style="animation-delay:${i*18}ms"` : '';
 
-                let ipDisplay = log.ip;
+                // Apply Presentation Data Masking to IP Address 
+                let maskedIp = log.ip;
+                let parts = log.ip.split('.');
+                if (parts.length === 4) { maskedIp = parts[0] + '.' + parts[1] + '.x.x'; }
+                
+                let ipDisplay = maskedIp;
                 if (isAdmin && isThreat) {
                     ipDisplay += `
                     <form action="/admin/manage_firewall" method="POST" style="display:inline; margin-left:12px;">
@@ -866,6 +918,9 @@
             if (isNewData) {
                 existingKeys = new Set(allLogs.map(makeKey));
             }
+
+            // Trigger the Telemetry panel update at the same time the logs load!
+            updateMiniTelemetry();
         }
 
         let lastRawData = null;
@@ -879,10 +934,15 @@
         }
 
         {% if is_admin %}
+        // Changed to poll globally so the telemetry panel constantly refreshes even on the camera tab
         setInterval(() => {
-            const logsTab = document.getElementById('Logs');
-            if (logsTab && logsTab.style.display === 'block') updateLogs();
+            updateLogs();
         }, 15000); 
+
+        // Initial fetch on load
+        window.addEventListener('load', () => { 
+            updateLogs(); 
+        });
 
         function openEditModal(username) {
             document.getElementById('modal-target').value = username;
