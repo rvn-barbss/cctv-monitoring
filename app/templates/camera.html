@@ -692,8 +692,9 @@
             const video = document.getElementById('cam-feed');
             const img = document.getElementById('cam-feed-img');
             
-            // Strictly enforce the Secure HLS Proxy route
-            const streamUrl = "/stream/index.m3u8"; 
+            // Fetch directly from tunnel to bypass Cloudflare Bot protection
+            // URL is dynamically injected by Flask only for authenticated users
+            const streamUrl = "{{ cam_url }}"; 
             
             document.getElementById('cam-ip-label').textContent = "CONNECTING TO SECURE TUNNEL";
             document.getElementById('stream-path-display').textContent = streamUrl;
@@ -701,7 +702,13 @@
             video.style.display = 'none';
             img.style.display = 'none';
 
-            // ---> STRICT HLS ROUTE <---
+            if (!streamUrl) {
+                showError();
+                document.getElementById('error-detail').textContent = 'Stream URL not configured on server.';
+                return;
+            }
+
+            // ---> HLS ROUTE <---
             if (Hls.isSupported()) {
                 const hls = new Hls();
                 hls.loadSource(streamUrl);
@@ -709,12 +716,12 @@
                 hls.on(Hls.Events.MANIFEST_PARSED, function() {
                     video.style.display = 'block';
                     video.play();
-                    showLive('Secure Proxy HLS');
+                    showLive('Cloudflare HLS');
                 });
                 hls.on(Hls.Events.ERROR, function (event, data) {
                     if (data.fatal) {
                         showError();
-                        document.getElementById('error-detail').textContent = 'Proxy stream offline or blocked by Cloudflare.';
+                        document.getElementById('error-detail').textContent = 'HLS stream offline or blocked by Cloudflare.';
                     }
                 });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -722,7 +729,7 @@
                 video.addEventListener('loadedmetadata', function() {
                     video.style.display = 'block';
                     video.play();
-                    showLive('Secure Proxy HLS (Native)');
+                    showLive('Cloudflare HLS (Native)');
                 });
                 video.addEventListener('error', () => showError());
             } else {
