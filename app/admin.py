@@ -2,6 +2,8 @@ import csv
 import io
 import secrets
 import string
+import re
+from urllib.parse import unquote
 from flask import Blueprint, request, redirect, url_for, abort, Response, flash
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
@@ -15,15 +17,19 @@ def _generate_temp_password(length=16):
     alphabet = string.ascii_letters + string.digits + string.punctuation
     return ''.join(secrets.choice(alphabet) for _ in range(length))
 
-# Re-use payload checker inside admin inputs for internal defense protection
 def check_admin_payloads():
-    malicious_signatures = ["' or ", '" or ', "1=1", "UNION SELECT", "<script>", "../", "..\\"]
+    patterns = [
+        r"(?i)(union\s+select|select\s+\*|drop\s+table|insert\s+into)",
+        r"(?i)(<script>|javascript:|onerror=|onload=)",
+        r"(\.\./|\.\.\\|/etc/passwd|/bin/sh)",
+        r"(?i)(--|#|\/\*).*"
+    ]
     for key, value in request.form.items():
         if value:
-            normalized_val = value.lower()
-            for sig in malicious_signatures:
-                if sig.lower() in normalized_val:
-                    return f"Exploit string profile '{sig}' inside administration field '{key}'"
+            decoded_val = unquote(value)
+            for pattern in patterns:
+                if re.search(pattern, decoded_val):
+                    return f"Exploit string profile matched inside administration field '{key}'"
     return None
 
 def enforce_ip_ban(reason_str):
@@ -42,7 +48,6 @@ def manage_users():
     if not current_user.is_admin:
         abort(403)
 
-    # Inspect Admin Inputs for exploit patterns
     exploit_found = check_admin_payloads()
     if exploit_found:
         enforce_ip_ban(exploit_found)
