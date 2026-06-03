@@ -173,7 +173,6 @@
         {% endif %}
 
         <form method="post" action="/verify_2fa">
-            <!-- CRITICAL FIX: Global CSRF Token verification map -->
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             
             <div class="input-group">
