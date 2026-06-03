@@ -3,18 +3,19 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SECURIX 2FA | Security Verification Check</title>
+    <title>SECURIX ACCESS | Two-Factor Authentication</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         :root {
             --bg-deep: #060709;
-            --panel-graphite: #090b0e;
+            --panel-graphite: #0f1115;
             --accent-crimson: #ff1e27;
             --accent-amber: #ff9100;
             --text-pure: #ffffff;
             --text-muted: #6c7a89;
+            --border-subtle: rgba(255, 255, 255, 0.05);
         }
 
         body {
@@ -26,28 +27,24 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            position: relative;
         }
 
-        /* --- BACKGROUND SECURITY ENVIRONMENT --- */
-        /* Subtle Tactical Grid Background */
         body::before {
             content: ""; position: absolute; inset: 0;
             background-image: linear-gradient(rgba(255, 255, 255, 0.01) 1px, transparent 1px),
                               linear-gradient(90deg, rgba(255, 255, 255, 0.01) 1px, transparent 1px);
-            background-size: 60px 60px;
+            background-size: 50px 50px;
             pointer-events: none;
-            z-index: 1;
+            z-index: 0;
         }
 
-        /* Clean, Slow Moving Laser Scan Line for Continuity */
         .scan-line {
-            position: absolute; top: 0; left: 0; width: 100%; height: 3px;
-            background: linear-gradient(90deg, transparent, rgba(255, 30, 39, 0.3), transparent);
-            box-shadow: 0 0 12px rgba(255, 30, 39, 0.4);
+            position: absolute; top: 0; left: 0; width: 100%; height: 4px;
+            background: linear-gradient(90deg, transparent, var(--accent-amber), transparent);
+            box-shadow: 0 0 15px var(--accent-amber);
             opacity: 0.4;
             animation: scanVertical 8s linear infinite;
-            z-index: 2;
+            z-index: 3;
             pointer-events: none;
         }
 
@@ -56,163 +53,138 @@
             100% { top: 105%; }
         }
 
-        /* --- CENTERED AUTHENTICATION CARD --- */
-        .auth-container {
+        .auth-panel {
+            background: linear-gradient(135deg, #0b0d11 0%, #060709 100%);
+            border: 1px solid var(--border-subtle);
+            border-top: 3px solid var(--accent-amber);
+            padding: 50px;
             width: 100%;
-            max-width: 450px;
-            background: var(--panel-graphite);
-            padding: 50px 45px;
-            border: 1px solid rgba(255, 255, 255, 0.03);
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            max-width: 460px;
             position: relative;
             z-index: 5;
-            text-align: left;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
         }
 
         .security-badge {
             display: flex; align-items: center; gap: 10px;
-            color: var(--accent-crimson); font-family: 'Orbitron', sans-serif;
-            font-size: 11px; font-weight: 700; letter-spacing: 2px; margin-bottom: 20px;
+            color: var(--accent-amber); font-family: 'Orbitron', sans-serif;
+            font-size: 11px; font-weight: 700; letter-spacing: 3px; margin-bottom: 20px;
         }
         .badge-icon {
-            width: 9px; height: 9px; background: var(--accent-crimson);
-            transform: rotate(45deg); box-shadow: 0 0 8px var(--accent-crimson);
+            width: 10px; height: 10px; background: var(--accent-amber);
+            transform: rotate(45deg); box-shadow: 0 0 8px var(--accent-amber);
         }
 
         h2 {
-            font-family: 'Orbitron', sans-serif; font-size: 34px; font-weight: 900;
-            letter-spacing: 3px; line-height: 1.1; margin-bottom: 6px; color: var(--text-pure);
+            font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 900;
+            letter-spacing: 2px; line-height: 1.1; margin-bottom: 8px; color: var(--text-pure);
         }
+        
         .subtitle {
             color: var(--text-muted); font-size: 13px; text-transform: uppercase;
             letter-spacing: 2px; margin-bottom: 35px; border-bottom: 1px solid rgba(255,255,255,0.05);
-            padding-bottom: 20px;
+            padding-bottom: 15px;
         }
 
-        /* Tactical Token Field Input */
-        .input-group { margin-bottom: 20px; }
+        .qr-container {
+            display: flex; flex-direction: column; align-items: center;
+            background: rgba(255, 255, 255, 0.02); border: 1px dashed rgba(255, 145, 0, 0.2);
+            padding: 25px; margin-bottom: 30px; text-align: center;
+        }
+
+        .qr-image {
+            border: 4px solid #fff; margin-bottom: 15px; max-width: 180px; height: auto;
+        }
+
+        .qr-instruction {
+            font-size: 14px; color: var(--text-pure); font-weight: 600; line-height: 1.4;
+        }
+
+        .input-group { margin-bottom: 25px; position: relative; }
         .input-group label {
-            display: block; margin-bottom: 12px; color: var(--text-pure);
+            display: block; margin-bottom: 10px; color: var(--text-pure);
             font-size: 12px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
         }
         
-        /* Autofill Overrides to fix browser block overlays */
         .input-field {
-            width: 100%; padding: 16px 20px; background: #141821;
-            border: 1px solid rgba(255, 255, 255, 0.05); border-left: 3px solid var(--accent-crimson);
-            color: var(--text-pure); font-family: 'Orbitron', sans-serif; font-size: 22px;
-            letter-spacing: 14px; text-align: center; transition: all 0.3s ease; outline: none;
+            width: 100%; padding: 16px 20px; background: rgba(20, 24, 33, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08); border-left: 3px solid var(--text-muted);
+            color: var(--text-pure); font-family: 'Orbitron', sans-serif; font-size: 20px;
+            letter-spacing: 6px; text-align: center; transition: all 0.3s ease; outline: none;
         }
         .input-field:focus {
-            border-color: rgba(255, 30, 39, 0.3); border-left-color: var(--accent-crimson);
-            background: #171c26 !important; box-shadow: 0 0 20px rgba(255, 30, 39, 0.05);
-        }
-        .input-field::placeholder { color: rgba(255, 255, 255, 0.1); letter-spacing: 14px; }
-
-        .input-field:-webkit-autofill,
-        .input-field:-webkit-autofill:hover, 
-        .input-field:-webkit-autofill:focus {
-            -webkit-text-fill-color: var(--text-pure) !important;
-            -webkit-box-shadow: 0 0 0px 1000px #141821 inset !important;
-            transition: background-color 5000s ease-in-out 0s;
+            border-color: rgba(255, 145, 0, 0.3); border-left-color: var(--accent-amber);
+            background: rgba(255, 145, 0, 0.01); box-shadow: 0 0 20px rgba(255, 145, 0, 0.05);
         }
 
-        /* QR Setup Area Framer */
-        .qr-wrapper {
-            background: #11141a; padding: 25px; border: 1px dashed rgba(255, 145, 0, 0.2);
-            display: inline-block; margin-bottom: 30px; width: 100%; text-align: center;
-            position: relative;
-        }
-        .qr-wrapper::before {
-            content: 'SECURE PROVISIONING LINK'; position: absolute; top: -9px; left: 15px; 
-            background: var(--panel-graphite); color: var(--accent-amber); font-family: 'Orbitron', sans-serif;
-            font-size: 9px; padding: 0 6px; letter-spacing: 1px;
-        }
-        .qr-code {
-            width: 160px; height: 160px; display: block; margin: 0 auto;
-            border: 4px solid var(--text-pure); filter: drop-shadow(0 0 15px rgba(255,30,39,0.1));
-        }
-
-        /* Action Buttons */
-        .login-btn {
+        .verify-btn {
             width: 100%; padding: 16px; background: transparent;
-            border: 1px solid var(--accent-crimson); color: var(--text-pure);
+            border: 1px solid var(--accent-amber); color: var(--text-pure);
             font-family: 'Orbitron', sans-serif; font-size: 14px; font-weight: 700;
             letter-spacing: 3px; cursor: pointer; transition: all 0.4s ease;
-            text-transform: uppercase; margin-top: 10px;
         }
-        .login-btn:hover {
-            box-shadow: 0 0 25px rgba(255, 30, 39, 0.35), inset 0 -100px 0 0 var(--accent-crimson);
-            text-shadow: 0 0 5px #fff;
+        .verify-btn:hover {
+            box-shadow: 0 0 25px rgba(255, 145, 0, 0.3), inset 0 -100px 0 0 var(--accent-amber);
+            color: #000; font-weight: 900;
         }
 
-        /* Error/Flash Alert Display Plates */
+        .abort-link {
+            display: block; text-align: center; margin-top: 25px; font-size: 12px; color: var(--text-muted);
+            text-decoration: none; letter-spacing: 2px; font-weight: 600; text-transform: uppercase; transition: 0.3s;
+        }
+        .abort-link:hover { color: var(--accent-crimson); }
+
         .error {
-            padding: 15px; border-radius: 0; margin-bottom: 25px; font-size: 13px;
+            padding: 15px; border-radius: 0; margin-bottom: 25px; font-size: 14px;
             font-weight: 600; letter-spacing: 1px; display: flex; align-items: center;
-            background: rgba(255, 30, 39, 0.08); color: #ff5252; border: 1px solid rgba(255, 30, 39, 0.2); border-left: 4px solid var(--accent-crimson);
+            background: rgba(255, 30, 39, 0.1); color: #ff5252; border: 1px solid rgba(255, 30, 39, 0.3);
+            border-left: 4px solid var(--accent-crimson);
         }
-
-        /* Terminal Footer Status Bar */
-        .system-status {
-            position: absolute; bottom: 25px; left: 40px; right: 40px;
-            display: flex; justify-content: space-between; align-items: center;
-            font-size: 11px; letter-spacing: 2px; color: var(--text-muted);
-            border-top: 1px solid rgba(255,255,255,0.03); padding-top: 15px;
-            font-family: 'Orbitron', sans-serif;
-        }
-        .status-node { color: #00e676; font-weight: 700; }
     </style>
 </head>
 <body>
 
     <div class="scan-line"></div>
 
-    <div class="auth-container">
-        
+    <div class="auth-panel">
         <div class="security-badge">
             <div class="badge-icon"></div>
-            AUTHORIZED PERSONNEL ONLY
+            IDENTITY VERIFICATION PROTOCOL
         </div>
         
-        <h2>SECURIX</h2>
-        <p class="subtitle">Watching Beyond Vision</p>
+        <h2>IDENTITY CHECK</h2>
+        <p class="subtitle">Two-Factor Authentication</p>
 
-        <!-- QR Code Setup Phase Logic Context -->
-        {% if is_first_time %}
-            <div class="qr-wrapper">
-                <img src="data:image/png;base64,{{ qr_b64 }}" class="qr-code" alt="MFA Token Setup Matrix">
-            </div>
-        {% endif %}
-
-        <!-- Flask Session Flash Error System -->
-        {% with messages = get_flashed_messages() %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
-            {% for message in messages %}
+            {% for category, message in messages %}
               <div class="error">
-                 <span>⚠️ INTERFACE ERROR: {{ message }}</span>
+                 <span>⚡ {{ message }}</span>
               </div>
             {% endfor %}
           {% endif %}
         {% endwith %}
 
-        <form method="POST" action="/verify_2fa">
+        {% if is_first_time %}
+        <div class="qr-container">
+            <img class="qr-image" src="data:image/png;base64,{{ qr_b64 }}" alt="MFA QR Code Mapping">
+            <div class="qr-instruction">Scan this matrix signature using your Authenticator App to anchor the cryptokey.</div>
+        </div>
+        {% endif %}
+
+        <form method="post" action="/verify_2fa">
+            <!-- CRITICAL FIX: Global CSRF Token verification map -->
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             
             <div class="input-group">
-                <label>TWO-FACTOR AUTHENTICATION</label>
-                <input type="text" name="token" class="input-field" placeholder="000000" maxlength="6" required autocomplete="off" autofocus>
+                <label>Verification Token</label>
+                <input type="text" name="token" class="input-field" placeholder="000000" required autocomplete="off" inputmode="numeric" pattern="[0-9]*" maxlength="6">
             </div>
 
-            <button type="submit" class="login-btn">VERIFY IDENTITY</button>
+            <button type="submit" class="verify-btn">VALIDATE HANDSHAKE</button>
         </form>
 
-        <!-- Integrated Terminal Footer Details Inside Main Container -->
-        <div class="system-status">
-            <div>NETWORK: <span class="status-node">SECURE</span></div>
-            <div>ENCRYPTION: AES_256</div>
-            <div>v4.82-SURV</div>
-        </div>
+        <a href="/logout" class="abort-link">// Terminate Connection Session</a>
     </div>
 
 </body>
