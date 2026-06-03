@@ -15,8 +15,11 @@ from app.utils import record_activity
 
 auth_bp = Blueprint('auth', __name__)
 
+# ==========================================
+# UNIFORM SECURITY THRESHOLDS (THE RULE OF 5)
+# ==========================================
 TOTP_MAX_ATTEMPTS = 5
-MAX_IP_STRIKES = 10
+MAX_IP_STRIKES = 5
 
 def get_client_ip():
     if request.headers.get('CF-Connecting-IP'):
@@ -102,6 +105,8 @@ def login():
             if user:
                 record_activity("FAILED LOGIN ATTEMPT: Incorrect credentials", user.id)
                 user.failed_attempts += 1
+                
+                # ACCOUNT LOCKOUT THRESHOLD (5 Attempts)
                 if user.failed_attempts >= 5:
                     user.is_locked = True
                 db.session.commit()
@@ -140,6 +145,8 @@ def verify_2fa():
         return redirect(url_for('auth.login'))
 
     totp_attempts = session.get('totp_attempts', 0)
+    
+    # 2FA LOCKOUT THRESHOLD (5 Attempts)
     if totp_attempts >= TOTP_MAX_ATTEMPTS:
         session.pop('pre_2fa_user_id', None)
         session.pop('totp_attempts', None)
