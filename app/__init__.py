@@ -135,6 +135,6 @@ def create_app():
                     master_admin.is_admin = True
                 db.session.commit()
         except Exception as e:
-            print(f"Startup Database Error: {e}")
+            pass
 
     return app
