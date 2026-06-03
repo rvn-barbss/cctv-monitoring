@@ -1,6 +1,7 @@
 import os
 from datetime import timedelta
-from flask import Flask, request, abort
+from flask import Flask, request, abort, session
+from flask_login import current_user
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash
 from sqlalchemy import text
@@ -26,8 +27,6 @@ def create_app():
         
     app.config['SQLALCHEMY_DATABASE_URI'] = db_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    
-    # NEW FIX: Prevents random 500 errors by automatically pinging the database to keep the connection alive
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         'pool_pre_ping': True,
         'pool_recycle': 300,
@@ -39,15 +38,15 @@ def create_app():
     limiter.init_app(app)
     login_manager.login_view = 'auth.login'
 
-    # UPDATED: Relaxed CSP to allow Cloudflare HLS streaming and jsDelivr scripts
     csp = {
         'default-src': ["'self'"],
         'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         'font-src': ["'self'", "https://fonts.gstatic.com"],
         'img-src': ["'self'", "data:", "blob:", "https://*.trycloudflare.com"],
-        'script-src': ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+        'script-src': ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://challenges.cloudflare.com"],
         'connect-src': ["'self'", "https://*.trycloudflare.com"],
-        'media-src': ["'self'", "blob:", "https://*.trycloudflare.com"]
+        'media-src': ["'self'", "blob:", "https://*.trycloudflare.com"],
+        'frame-src': ["'self'", "https://challenges.cloudflare.com"]
     }
     Talisman(app, content_security_policy=csp, frame_options='DENY', content_security_policy_nonce_in=[])
 
@@ -66,6 +65,18 @@ def create_app():
         if is_blocked:
             abort(403, description=f"ERR_ACCESS_DENIED: Your IP address ({ip}) has been permanently blacklisted. Reason: {is_blocked.reason}")
 
+        if current_user.is_authenticated:
+            ua = request.headers.get('User-Agent', '')
+            fingerprint = f"{ip}-{ua}"
+            
+            if 'session_fingerprint' not in session:
+                session['session_fingerprint'] = fingerprint
+            elif session['session_fingerprint'] != fingerprint:
+                from flask_login import logout_user
+                logout_user()
+                session.clear()
+                abort(403, description="ERR_SESSION_HIJACK: Network environment alteration detected mid-session.")
+
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
@@ -81,7 +92,6 @@ def create_app():
         try:
             db.create_all()
             
-            # --- DATABASE MIGRATIONS ---
             try:
                 db.session.execute(text('SELECT is_admin FROM "user" LIMIT 1'))
             except Exception:
@@ -101,7 +111,6 @@ def create_app():
                 db.session.execute(text('ALTER TABLE audit_log ADD COLUMN user_id INTEGER REFERENCES "user"(id)'))
                 db.session.commit()
                 
-            # FIX: Force PostgreSQL to create the missing Threat Tracking columns!
             try:
                 db.session.execute(text('SELECT event_code FROM audit_log LIMIT 1'))
             except Exception:
