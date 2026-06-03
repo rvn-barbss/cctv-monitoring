@@ -2,9 +2,8 @@ import os
 import cv2
 import threading
 import time
-import requests
 from datetime import datetime, timedelta
-from flask import Blueprint, render_template, redirect, url_for, session, abort, Response, stream_with_context
+from flask import Blueprint, render_template, redirect, url_for, session, abort, Response
 from flask_login import login_required, current_user
 from app.models import User, AuditLog, BlockedIP
 from app.utils import record_activity
@@ -43,6 +42,7 @@ def dashboard():
             if len(active_ips) >= 5:
                 break
     
+    # URL is securely pulled from environment only for authenticated users
     cam_url = os.environ.get('CAM_URL', '') 
     
     return render_template('camera.html', is_admin=current_user.is_admin, all_users=all_users, blocked_ips=blocked_ips, active_ips=active_ips, cam_url=cam_url)
@@ -122,30 +122,6 @@ def generate_frames():
 @login_required 
 def video_feed():
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-@views_bp.route('/stream/<path:filename>')
-@login_required
-def stream_proxy(filename):
-    base_url = os.environ.get('CAM_URL', '').rstrip('/')
-    if not base_url:
-        abort(404)
-        
-    if '..' in filename:
-        abort(400)
-        
-    target_url = f"{base_url}/{filename}"
-    
-    try:
-        req = requests.get(target_url, stream=True, timeout=5)
-        headers = {k: v for k, v in req.headers.items() if k.lower() in ['content-type', 'content-length']}
-        
-        return Response(
-            stream_with_context(req.iter_content(chunk_size=1024)),
-            content_type=req.headers.get('content-type'),
-            headers=headers
-        )
-    except requests.RequestException:
-        abort(502)
 
 @views_bp.route('/<path:path>')
 def catch_all(path):
