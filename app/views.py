@@ -2,8 +2,9 @@ import os
 import cv2
 import threading
 import time
+import requests
 from datetime import datetime, timedelta
-from flask import Blueprint, render_template, redirect, url_for, session, abort, Response
+from flask import Blueprint, render_template, redirect, url_for, session, abort, Response, stream_with_context
 from flask_login import login_required, current_user
 from app.models import User, AuditLog, BlockedIP
 from app.utils import record_activity
@@ -69,13 +70,11 @@ def get_logs():
     output = "\n".join(lines) if lines else "No activity recorded yet."
     return Response(output, mimetype='text/plain')
 
-
 global_frame = None
 stream_lock = threading.Lock()
 camera_thread = None
 
 def capture_rtsp_stream():
-    """Background thread that connects to the Tenda camera EXACTLY ONCE"""
     global global_frame
     rtsp_url = os.environ.get('CCTV_RTSP_URL')
     
@@ -94,14 +93,12 @@ def capture_rtsp_stream():
             camera = cv2.VideoCapture(rtsp_url)
             continue
             
-        
         ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
         if ret:
             with stream_lock:
                 global_frame = buffer.tobytes()
 
 def generate_frames():
-    """Yields the shared global frame to whoever is viewing the website"""
     global global_frame, camera_thread
     
     if camera_thread is None:
@@ -125,3 +122,38 @@ def generate_frames():
 @login_required 
 def video_feed():
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@views_bp.route('/stream/<path:filename>')
+@login_required
+def stream_proxy(filename):
+    base_url = os.environ.get('CAM_URL', '').rstrip('/')
+    if not base_url:
+        abort(404)
+        
+    if '..' in filename:
+        abort(400)
+        
+    target_url = f"{base_url}/{filename}"
+    
+    try:
+        req = requests.get(target_url, stream=True, timeout=5)
+        headers = {k: v for k, v in req.headers.items() if k.lower() in ['content-type', 'content-length']}
+        
+        return Response(
+            stream_with_context(req.iter_content(chunk_size=1024)),
+            content_type=req.headers.get('content-type'),
+            headers=headers
+        )
+    except requests.RequestException:
+        abort(502)
+
+@views_bp.route('/<path:path>')
+def catch_all(path):
+    suspicious = ['wp-admin', '.env', 'phpmyadmin', 'config', 'admin.php', 'setup', '.git', 'passwd']
+    
+    if any(s in path.lower() for s in suspicious):
+        from app.auth import add_ip_strike
+        add_ip_strike(custom_reason=f"Honeypot tripped: Enumeration of /{path}", force_ban=True)
+        abort(403, description="Active Defense Protocol: Malicious directory enumeration detected. IP blacklisted.")
+        
+    abort(404)
