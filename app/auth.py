@@ -1,6 +1,10 @@
 import io
+import os
 import pyotp
 import qrcode
+import requests
+import re
+from urllib.parse import unquote
 from base64 import b64encode
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort
 from flask_login import login_user, logout_user, current_user
@@ -37,16 +41,19 @@ def add_ip_strike(custom_reason=None, force_ban=False):
     return False
 
 def detect_suspicious_payloads():
-    malicious_signatures = [
-        "' or ", '" or ', "1=1", "UNION SELECT", "select * from", "drop table", 
-        "<script>", "javascript:", "onerror=", "alert(", "../", "..\\", "/etc/passwd"
+    patterns = [
+        r"(?i)(union\s+select|select\s+\*|drop\s+table|insert\s+into)",
+        r"(?i)(<script>|javascript:|onerror=|onload=)",
+        r"(\.\./|\.\.\\|/etc/passwd|/bin/sh)",
+        r"(?i)(--|#|\/\*).*"
     ]
+    
     for key, value in request.form.items():
         if value:
-            normalized_val = value.lower()
-            for sig in malicious_signatures:
-                if sig.lower() in normalized_val:
-                    return f"Malicious input pattern matching signature: '{sig}' in field '{key}'"
+            decoded_val = unquote(value)
+            for pattern in patterns:
+                if re.search(pattern, decoded_val):
+                    return f"Payload matched threat signature in field '{key}'"
     return None
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
@@ -58,6 +65,23 @@ def login():
             record_activity(f"ATTACK DETECTED: {malicious_reason}", None)
             add_ip_strike(custom_reason=f"Auto-banned: Cyber Attack Attempt ({malicious_reason})", force_ban=True)
             return abort(403, description="ERR_ACCESS_DENIED: Critical security violation detected. Your IP has been banned.")
+
+        turnstile_response = request.form.get('cf-turnstile-response')
+        turnstile_secret = os.environ.get('TURNSTILE_SECRET')
+        
+        if turnstile_secret:
+            verify_url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
+            data = {
+                'secret': turnstile_secret,
+                'response': turnstile_response,
+                'remoteip': get_client_ip()
+            }
+            resp = requests.post(verify_url, data=data).json()
+            
+            if not resp.get('success'):
+                record_activity("FAILED LOGIN ATTEMPT: CAPTCHA validation failed", None)
+                flash('Security validation failed.', 'error')
+                return render_template('login.html')
 
         username = request.form.get('username')
         password = request.form.get('password')
@@ -140,7 +164,7 @@ def verify_2fa():
 
     if request.method == 'POST':
         token = request.form.get('token')
-        if totp.verify(token):
+        if totp.verify(token, valid_window=1):
             user.failed_attempts = 0
             db.session.commit()
             session.pop('pre_2fa_user_id', None)
