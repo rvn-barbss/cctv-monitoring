@@ -15,9 +15,7 @@ from app.utils import record_activity
 
 auth_bp = Blueprint('auth', __name__)
 
-# ==========================================
-# UNIFORM SECURITY THRESHOLDS (THE RULE OF 5)
-# ==========================================
+
 TOTP_MAX_ATTEMPTS = 5
 MAX_IP_STRIKES = 5
 
@@ -30,16 +28,25 @@ def get_client_ip():
 
 def add_ip_strike(custom_reason=None, force_ban=False):
     ip = get_client_ip()
-    strikes = session.get('ip_strikes', 0) + 1 if not force_ban else MAX_IP_STRIKES
-    session['ip_strikes'] = strikes
+    device_hash = request.form.get('device_hash', 'unknown_device')
     
-    if strikes >= MAX_IP_STRIKES or force_ban:
-        reason_text = custom_reason if custom_reason else f"Auto-banned: {MAX_IP_STRIKES} failed login attempts"
+    # Track strikes by both IP and physical device hardware
+    ip_strikes = session.get(f'strikes_{ip}', 0) + 1 if not force_ban else MAX_IP_STRIKES
+    device_strikes = session.get(f'strikes_{device_hash}', 0) + 1 if not force_ban else MAX_IP_STRIKES
+    
+    session[f'strikes_{ip}'] = ip_strikes
+    session[f'strikes_{device_hash}'] = device_strikes
+    
+    highest_strikes = max(ip_strikes, device_strikes)
+    
+    if highest_strikes >= MAX_IP_STRIKES or force_ban:
+        reason_text = custom_reason if custom_reason else f"Auto-banned: {MAX_IP_STRIKES} failed attempts detected from this network/device."
+        
         if not BlockedIP.query.filter_by(ip_address=ip).first():
             new_block = BlockedIP(ip_address=ip, reason=reason_text)
             db.session.add(new_block)
             db.session.commit()
-            record_activity(f"FIREWALL AUTO-BAN: IP {ip} dropped. Reason: {reason_text}", None)
+            record_activity(f"FIREWALL AUTO-BAN: IP {ip} dropped. (Device Hash: {device_hash[:8]})", None)
         return True
     return False
 
@@ -106,7 +113,6 @@ def login():
                 record_activity("FAILED LOGIN ATTEMPT: Incorrect credentials", user.id)
                 user.failed_attempts += 1
                 
-                # ACCOUNT LOCKOUT THRESHOLD (5 Attempts)
                 if user.failed_attempts >= 5:
                     user.is_locked = True
                 db.session.commit()
@@ -146,7 +152,6 @@ def verify_2fa():
 
     totp_attempts = session.get('totp_attempts', 0)
     
-    # 2FA LOCKOUT THRESHOLD (5 Attempts)
     if totp_attempts >= TOTP_MAX_ATTEMPTS:
         session.pop('pre_2fa_user_id', None)
         session.pop('totp_attempts', None)
